@@ -1,13 +1,18 @@
-import { UserData, UserStatus } from "../../../context/web-socket/provider.tsx";
+import {
+  RoomDataMap,
+  UserDataMap,
+  UserStatus,
+} from "../../../context/web-socket/provider.tsx";
 
 export function UsersList(props: {
-  onlineUsers: UserData[];
+  onlineUsers: UserDataMap;
+  onlineRooms: RoomDataMap;
   onClickPlayGame: (roomUid: string) => void;
   onClickWatchGame: (roomUid: string) => void;
 }) {
   return (
     <ul role="list" className="divide-y divide-gray-100">
-      {props.onlineUsers.map((user, userIdx) => {
+      {Array.from(props.onlineUsers.values()).map((user, userIdx) => {
         const getStatusColor = () => {
           switch (user.status) {
             case UserStatus.Waiting:
@@ -39,6 +44,7 @@ export function UsersList(props: {
 
         const statusColor = getStatusColor();
         const statusLabel = getStatusLabel();
+        const room = props.onlineRooms.get(user.roomUid);
 
         return (
           <li
@@ -67,7 +73,7 @@ export function UsersList(props: {
                     <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
                       <circle cx="1" cy="1" r="1" />
                     </svg>
-                    <p className="truncate">{user.roomName} room</p>
+                    <p className="truncate">{room?.name} room</p>
                   </>
                 )}
                 <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
@@ -82,7 +88,7 @@ export function UsersList(props: {
               {user.status === UserStatus.Pending && (
                 <button
                   type="button"
-                  onClick={() => props.onClickPlayGame(user.roomUid!)}
+                  onClick={() => props.onClickPlayGame(room?.uid!)}
                   className="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block"
                 >
                   Play Game
@@ -92,7 +98,7 @@ export function UsersList(props: {
                 user.status === UserStatus.PairedWatcher) && (
                 <button
                   type="button"
-                  onClick={() => props.onClickWatchGame(user.roomUid!)}
+                  onClick={() => props.onClickWatchGame(room?.uid!)}
                   className="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block"
                 >
                   Watch Game

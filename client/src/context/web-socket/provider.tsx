@@ -16,6 +16,7 @@ export enum EventName {
   CreateGameFailed = "create-game-failed",
   CreateGame = "create-game",
   LeaveGame = "leave-game",
+  GameLeft = "game-left",
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
 }
@@ -34,13 +35,14 @@ export type UserData = {
   createdAt: string;
   wins: number;
   losses: number;
-  room: RoomData;
+  roomUid: string;
 };
 
 export type RoomData = {
   uid: string;
   name: string;
   size: number;
+  userUids: string[];
 };
 
 export type UserDataMap = Map<string, UserData>;
@@ -49,6 +51,7 @@ export type RoomDataMap = Map<string, RoomData>;
 
 export interface WebSocketReturn {
   userUid: string;
+  roomUid?: string;
   onlineRooms: RoomDataMap;
   onlineUsers: UserDataMap;
 
@@ -58,6 +61,8 @@ export interface WebSocketReturn {
   leaveGame: () => void;
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
+
+  setRoomUid: (nextRoomUid: string) => void;
 }
 
 const SOCKET_SERVER_URL = "http://localhost:4000";
@@ -68,6 +73,7 @@ export function WebSocketProvider({ children }) {
   const [userUid, setUserUid] = useState<string>(
     undefined as unknown as string,
   );
+  const [roomUid, setRoomUid] = useState<string | undefined>(undefined);
   const [onlineRooms, setOnlineRooms] = useState<RoomDataMap>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<UserDataMap>(new Map());
 
@@ -116,7 +122,7 @@ export function WebSocketProvider({ children }) {
   }
 
   function leaveGame(): void {
-    if (!onlineUsers.get(userUid)?.room?.uid) return;
+    if (!onlineUsers.get(userUid)?.roomUid) return;
     socket.emit(EventName.LeaveGame);
   }
 
@@ -137,6 +143,7 @@ export function WebSocketProvider({ children }) {
     <WebsocketContext.Provider
       value={{
         userUid,
+        roomUid,
         onlineUsers,
         onlineRooms,
 
@@ -146,6 +153,8 @@ export function WebSocketProvider({ children }) {
         leaveGame,
 
         listen,
+
+        setRoomUid,
       }}
     >
       {children}

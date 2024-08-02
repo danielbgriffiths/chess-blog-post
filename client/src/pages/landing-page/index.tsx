@@ -7,7 +7,7 @@ import { InitialGameClickZone } from "./components/initial-game-click-zone";
 import { RouteName } from "../../router";
 import { toast } from "react-toastify";
 
-export function Index() {
+export function LandingPage() {
   const websocket = useWebSocket();
   const navigate = useNavigate();
 
@@ -24,6 +24,8 @@ export function Index() {
   }
 
   function onCreateGameSucceeded(roomUid: string): void {
+    toast(`Success creating ${roomUid} game`);
+    websocket.setRoomUid(roomUid);
     navigate(RouteName.GameSpace);
   }
 
@@ -36,6 +38,7 @@ export function Index() {
     successType: "player" | "watcher",
   ): void {
     toast(`Success joining ${roomUid} as ${successType}`);
+    websocket.setRoomUid(roomUid);
     navigate(RouteName.GameSpace);
   }
 
@@ -89,11 +92,13 @@ export function Index() {
               Select a player who is in pending state to enter their game!
             </p>
           </div>
-          {websocket.onlineUsers.length ? (
+          {websocket.onlineUsers.size > 0 ? (
             <UsersList
+              onlineRooms={websocket.onlineRooms}
               onlineUsers={websocket.onlineUsers}
               onClickJoinGame={onClickPlayGame}
               onClickWatchGame={onClickWatchGame}
+              onClickPlayGame={onClickPlayGame}
             />
           ) : (
             <InitialGameClickZone onClickCreateGame={onClickCreateGame} />
