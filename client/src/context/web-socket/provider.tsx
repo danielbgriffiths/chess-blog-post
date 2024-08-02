@@ -2,22 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import io from "socket.io-client";
 import { toast } from "react-toastify";
 
-export enum WsEmit {
-  Join = "join",
-  ReJoin = "rejoin",
-  JoinRoom = "join-room",
-  LeaveRoom = "leave-room",
-}
+import { WebsocketContext } from "./create-context";
 
-export enum WsListen {
-  JoinSuccess = "join-success",
-  JoinFailed = "join-failed",
-  Connected = "connect",
-  RoomJoined = "room-joined",
-  RoomFull = "room-full",
-  RoomLeft = "room-left",
-  RoomsUpdate = "rooms-update",
-  UsersUpdate = "users-update",
+export enum EventName {
+  Connect = "connect",
+  PlayGameSucceeded = "play-game-succeeded",
+  WatchGameSucceeded = "watch-game-succeeded",
+  PlayGameFailed = "play-game-failed",
+  WatchGameFailed = "watch-game-failed",
+  JoinGameToWatch = "join-game-to-watch",
+  JoinGameToPlay = "join-game-to-play",
+  CreateGameSucceeded = "create-game-succeeded",
+  CreateGameFailed = "create-game-failed",
+  CreateGame = "create-game",
+  LeaveGame = "leave-game",
+  OnlineRoomsUpdate = "online-rooms-update",
+  OnlineUsersUpdate = "online-users-update",
 }
 
 export enum UserStatus {
@@ -34,152 +34,121 @@ export type UserData = {
   createdAt: string;
   wins: number;
   losses: number;
-  roomName?: string;
-  roomUid?: string;
+  room: RoomData;
 };
 
 export type RoomData = {
+  uid: string;
   name: string;
   size: number;
-  clients?: string[];
 };
 
-interface WebSocketReturn {
-  isConnected: boolean;
-  isJoined: boolean;
-  allRooms: RoomData[];
-  allUsers: UserData[];
-  currentRoomName: string;
-  username: string;
-  joinRoom: (nextRoom: string) => void;
-  createAndJoinRoom: (newRoomName: string) => void;
-  leaveRoom: () => void;
-  join: (username: string) => void;
-  setIsJoined: (nextIsJoined: boolean) => void;
-  setUsername: (nextUsername: string) => void;
-  listen: (event: WsListen, handler: (...args: unknown[]) => void) => void;
+export type UserDataMap = Map<string, UserData>;
+
+export type RoomDataMap = Map<string, RoomData>;
+
+export interface WebSocketReturn {
+  userUid: string;
+  onlineRooms: RoomDataMap;
+  onlineUsers: UserDataMap;
+
+  joinGameToWatch: (roomUid: string) => void;
+  joinGameToPlay: (roomUid: string) => void;
+  createGame: () => void;
+  leaveGame: () => void;
+
+  listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
 }
 
 const SOCKET_SERVER_URL = "http://localhost:4000";
-const WAITING_ROOM = "waitingRoom";
 
 const socket = io(SOCKET_SERVER_URL);
 
 export function WebSocketProvider({ children }) {
-  const [allRooms, setAllRooms] = useState<RoomData[]>([]);
-  const [allUsers, setAllUsers] = useState<UserData[]>([]);
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [currentRoomName, setCurrentRoomName] = useState<string>(WAITING_ROOM);
-  const [username, setUsername] = useState<string>("");
-  const [isJoined, setIsJoined] = useState<boolean>(false);
+  const [userUid, setUserUid] = useState<string>(
+    undefined as unknown as string,
+  );
+  const [onlineRooms, setOnlineRooms] = useState<RoomDataMap>(new Map());
+  const [onlineUsers, setOnlineUsers] = useState<UserDataMap>(new Map());
 
   useEffect(() => {
-    function onConnect(): void {
-      setIsConnected(true);
-
-      const storedUsername = localStorage.getItem("chess::username");
-      if (!storedUsername) return;
-      socket.emit(WsEmit.ReJoin, storedUsername);
-      setUsername(storedUsername);
-      setCurrentRoomName(WAITING_ROOM);
-      setIsJoined(true);
+    function onConnect(nextUserUid: string): void {
+      setUserUid(nextUserUid);
     }
 
-    socket.off(WsListen.Connected).on(WsListen.Connected, onConnect);
-
-    if (!isJoined) return;
-
-    function onRoomJoined(nextRoomName: string): void {
-      setCurrentRoomName(nextRoomName);
-      if (nextRoomName === WAITING_ROOM) return;
-      toast(`Joined server's ${nextRoomName}`);
+    function onOnlineRoomsUpdate(nextOnlineRooms: RoomDataMap): void {
+      setOnlineRooms(nextOnlineRooms);
     }
 
-    function onRoomFull(invalidRoomName: string): void {
-      toast(`${invalidRoomName} room is full`);
+    function onOnlineUsersUpdate(nextOnlineUsers: UserDataMap): void {
+      setOnlineUsers(nextOnlineUsers);
     }
 
-    function onRoomLeft(roomName: string): void {
-      setCurrentRoomName(WAITING_ROOM);
-      toast(`Left ${roomName} room`);
-    }
-
-    function onRoomsUpdate(nextRooms: RoomData[]): void {
-      setAllRooms(nextRooms);
-    }
-
-    function onUsersUpdate(nextUsers: UserData[]): void {
-      setAllUsers(nextUsers);
-    }
-
-    socket.off(WsListen.RoomJoined).on(WsListen.RoomJoined, onRoomJoined);
-    socket.off(WsListen.RoomFull).on(WsListen.RoomFull, onRoomFull);
-    socket.off(WsListen.RoomLeft).on(WsListen.RoomLeft, onRoomLeft);
-    socket.off(WsListen.RoomsUpdate).on(WsListen.RoomsUpdate, onRoomsUpdate);
-    socket.off(WsListen.UsersUpdate).on(WsListen.UsersUpdate, onUsersUpdate);
+    socket.off(EventName.Connect).on(EventName.Connect, onConnect);
+    socket
+      .off(EventName.OnlineRoomsUpdate)
+      .on(EventName.OnlineRoomsUpdate, onOnlineUsersUpdate);
+    socket
+      .off(EventName.OnlineUsersUpdate)
+      .on(EventName.OnlineUsersUpdate, onOnlineRoomsUpdate);
 
     return () => {
-      socket.off(WsListen.Connected);
-      socket.off(WsListen.RoomJoined);
-      socket.off(WsListen.RoomFull);
-      socket.off(WsListen.RoomLeft);
-      socket.off(WsListen.RoomsUpdate);
-      socket.off(WsListen.UsersUpdate);
+      socket.off(EventName.Connect);
+      socket.off(EventName.OnlineRoomsUpdate);
+      socket.off(EventName.OnlineUsersUpdate);
     };
-  }, [isJoined]);
+  }, []);
 
-  function join(username: string): void {
-    socket.emit(WsEmit.Join, username);
-    setIsJoined(true);
-    setUsername(username);
+  useEffect(() => {
+    toast(`Connected to server as ${userUid}`);
+  }, [userUid]);
+
+  function joinGameToWatch(roomUid: string): void {
+    socket.emit(EventName.JoinGameToWatch, roomUid);
   }
 
-  function joinRoom(room: string): void {
-    socket.emit(WsEmit.JoinRoom, room);
+  function joinGameToPlay(roomUid: string): void {
+    socket.emit(EventName.JoinGameToPlay, roomUid);
   }
 
-  function createAndJoinRoom(newRoomName: string): void {
-    if (newRoomName.trim() === "") return;
-    socket.emit(WsEmit.JoinRoom, newRoomName);
+  function createGame(): void {
+    socket.emit(EventName.CreateGame);
   }
 
-  function leaveRoom(): void {
-    if (currentRoomName === WAITING_ROOM) return;
-    socket.emit(WsEmit.LeaveRoom, currentRoomName);
+  function leaveGame(): void {
+    if (!onlineUsers.get(userUid)?.room?.uid) return;
+    socket.emit(EventName.LeaveGame);
   }
 
   const listen = useCallback(
-    (event: WsListen, handler: (...args: unknown[]) => void) => {
+    (eventName: EventName, handler: (...args: unknown[]) => void) => {
       if (!socket) return;
 
-      socket.off(event).on(event, handler);
+      socket.off(eventName).on(eventName, handler);
 
       return (): void => {
-        socket.off(event);
+        socket.off(eventName);
       };
     },
-    [isConnected],
+    [userUid],
   );
 
   return (
-    <Websocket.Provider
+    <WebsocketContext.Provider
       value={{
-        isConnected,
-        isJoined,
-        allRooms,
-        allUsers,
-        currentRoomName,
-        username,
-        joinRoom,
-        createAndJoinRoom,
-        leaveRoom,
-        join,
-        setIsJoined,
-        setUsername,
+        userUid,
+        onlineUsers,
+        onlineRooms,
+
+        joinGameToWatch,
+        joinGameToPlay,
+        createGame,
+        leaveGame,
+
         listen,
       }}
     >
       {children}
-    </Websocket.Provider>
+    </WebsocketContext.Provider>
   );
 }

@@ -1,7 +1,7 @@
 import { GameProvider } from "../context/game/provider";
-import { ChessGame } from "../components/chess-game";
+import { ChessGame } from "./components/chess-game.tsx";
 
-export function GameSpace() {
+export function Index() {
   return (
     <GameProvider>
       <ChessGame />

@@ -1,8 +1,8 @@
-import { UserData, UserStatus } from "../context/web-socket/provider";
+import { UserData, UserStatus } from "../../../context/web-socket/provider.tsx";
 
 export function UsersList(props: {
   onlineUsers: UserData[];
-  onClickJoinGame: (roomUid: string) => void;
+  onClickPlayGame: (roomUid: string) => void;
   onClickWatchGame: (roomUid: string) => void;
 }) {
   return (
@@ -82,7 +82,7 @@ export function UsersList(props: {
               {user.status === UserStatus.Pending && (
                 <button
                   type="button"
-                  onClick={() => props.onClickJoinGame(user.roomUid!)}
+                  onClick={() => props.onClickPlayGame(user.roomUid!)}
                   className="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block"
                 >
                   Play Game

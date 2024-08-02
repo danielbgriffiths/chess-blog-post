@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import { LandingPage } from "../pages/landing-page";
-import { GameSpace } from "../pages/game-space";
+import { Index } from "../pages/landing-page";
+import { Index } from "../pages/game-space";
 
 export enum RouteName {
   Root = "/",
@@ -11,10 +11,10 @@ export enum RouteName {
 export const router = createBrowserRouter([
   {
     path: RouteName.Root,
-    element: <LandingPage />,
+    element: <Index />,
   },
   {
     path: RouteName.GameSpace,
-    element: <GameSpace />,
+    element: <Index />,
   },
 ]);

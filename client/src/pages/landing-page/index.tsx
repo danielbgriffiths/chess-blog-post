@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 
-import { useWebSocket, EventName } from "../context/web-socket/use-context";
-import { UsersList } from "../components/users-list";
-import { InitialGameClickZone } from "../components/initial-game-click-zone";
-import { Route } from "../router";
+import { EventName } from "../../context/web-socket/provider";
+import { useWebSocket } from "../../context/web-socket/use-context";
+import { UsersList } from "./components/users-list";
+import { InitialGameClickZone } from "./components/initial-game-click-zone";
+import { RouteName } from "../../router";
+import { toast } from "react-toastify";
 
-export function LandingPage() {
+export function Index() {
   const websocket = useWebSocket();
   const navigate = useNavigate();
 
@@ -13,7 +15,7 @@ export function LandingPage() {
     websocket.createGame();
   }
 
-  function onClickJoinGame(roomUid: string): void {
+  function onClickPlayGame(roomUid: string): void {
     websocket.joinGameToPlay(roomUid);
   }
 
@@ -21,12 +23,43 @@ export function LandingPage() {
     websocket.joinGameToWatch(roomUid);
   }
 
-  function onJoinOrWatchGame(): void {
-    navigate(Route.GameSpace);
+  function onCreateGameSucceeded(roomUid: string): void {
+    navigate(RouteName.GameSpace);
   }
 
-  websocket.listen(EventName.JoinedGame, onJoinOrWatchGame);
-  websocket.listen(EventName.WatchingGame, onJoinOrWatchGame);
+  function onCreateGameFailed(): void {
+    toast.error("Failed to create new game");
+  }
+
+  function onPlayOrWatchGameSucceeded(
+    roomUid: string,
+    successType: "player" | "watcher",
+  ): void {
+    toast(`Success joining ${roomUid} as ${successType}`);
+    navigate(RouteName.GameSpace);
+  }
+
+  function onPlayOrWatchGameFailed(
+    roomUid: string,
+    failType: "player" | "watcher",
+  ): void {
+    toast.error(`Failed to join game ${roomUid} as ${failType}`);
+  }
+
+  websocket.listen(EventName.CreateGameSucceeded, onCreateGameSucceeded);
+  websocket.listen(EventName.CreateGameFailed, onCreateGameFailed);
+  websocket.listen(EventName.PlayGameSucceeded, (roomUid: string) =>
+    onPlayOrWatchGameSucceeded(roomUid, "player"),
+  );
+  websocket.listen(EventName.WatchGameSucceeded, (roomUid: string) =>
+    onPlayOrWatchGameSucceeded(roomUid, "watcher"),
+  );
+  websocket.listen(EventName.PlayGameFailed, (roomUid: string) =>
+    onPlayOrWatchGameFailed(roomUid, "player"),
+  );
+  websocket.listen(EventName.WatchGameFailed, (roomUid: string) =>
+    onPlayOrWatchGameFailed(roomUid, "watcher"),
+  );
 
   return (
     <>
@@ -59,7 +92,7 @@ export function LandingPage() {
           {websocket.onlineUsers.length ? (
             <UsersList
               onlineUsers={websocket.onlineUsers}
-              onClickJoinGame={onClickJoinGame}
+              onClickJoinGame={onClickPlayGame}
               onClickWatchGame={onClickWatchGame}
             />
           ) : (
