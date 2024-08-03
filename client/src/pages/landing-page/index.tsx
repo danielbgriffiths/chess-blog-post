@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import { EventName } from "../../context/web-socket/provider";
 import { useWebSocket } from "../../context/web-socket/use-context";
 import { UsersList } from "./components/users-list";
 import { InitialGameClickZone } from "./components/initial-game-click-zone";
 import { RouteName } from "../../router";
-import { toast } from "react-toastify";
 
 export function LandingPage() {
   const websocket = useWebSocket();
@@ -66,7 +66,7 @@ export function LandingPage() {
 
   return (
     <>
-      <header className="md:flex md:items-center md:justify-between">
+      <header className="p-4 md:flex md:items-center md:justify-between">
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
             Online Chess Blog Tutorial
@@ -82,8 +82,8 @@ export function LandingPage() {
           </button>
         </div>
       </header>
-      <main>
-        <div>
+      <main className="flex justify-center items-center h-main">
+        <div className="max-w-2xl w-full">
           <div className="border-b border-gray-200 pb-5">
             <h3 className="text-base font-semibold leading-6 text-gray-900">
               Online Players
@@ -92,10 +92,12 @@ export function LandingPage() {
               Select a player who is in pending state to enter their game!
             </p>
           </div>
-          {websocket.onlineUsers.size > 0 ? (
+          {websocket.onlineUsers.size > 1 ? (
             <UsersList
               onlineRooms={websocket.onlineRooms}
-              onlineUsers={websocket.onlineUsers}
+              otherOnlineUsers={Array.from(
+                websocket.onlineUsers.values(),
+              ).filter((user) => user.uid !== websocket.userUid)}
               onClickJoinGame={onClickPlayGame}
               onClickWatchGame={onClickWatchGame}
               onClickPlayGame={onClickPlayGame}

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import io from "socket.io-client";
 import { toast } from "react-toastify";
 
-import { WebsocketContext } from "./create-context";
+import { WebSocketContext } from "./create-context";
 
 export enum EventName {
-  Connect = "connect",
+  Connected = "connected",
+  ConnectionWelcomeMessage = "connection-welcome-message",
   PlayGameSucceeded = "play-game-succeeded",
   WatchGameSucceeded = "watch-game-succeeded",
   PlayGameFailed = "play-game-failed",
@@ -17,6 +18,8 @@ export enum EventName {
   CreateGame = "create-game",
   LeaveGame = "leave-game",
   GameLeft = "game-left",
+  PlayerLeftGame = "player-left-game",
+  LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
 }
@@ -35,14 +38,15 @@ export type UserData = {
   createdAt: string;
   wins: number;
   losses: number;
-  roomUid: string;
+  roomUid?: string;
 };
 
 export type RoomData = {
   uid: string;
   name: string;
   size: number;
-  userUids: string[];
+  playerUids: Set<string>;
+  watcherUids: Set<String>;
 };
 
 export type UserDataMap = Map<string, UserData>;
@@ -58,11 +62,11 @@ export interface WebSocketReturn {
   joinGameToWatch: (roomUid: string) => void;
   joinGameToPlay: (roomUid: string) => void;
   createGame: () => void;
-  leaveGame: () => void;
+  leaveGame: (roomUid: string) => void;
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
 
-  setRoomUid: (nextRoomUid: string) => void;
+  setRoomUid: (nextRoomUid?: string) => void;
 }
 
 const SOCKET_SERVER_URL = "http://localhost:4000";
@@ -78,34 +82,39 @@ export function WebSocketProvider({ children }) {
   const [onlineUsers, setOnlineUsers] = useState<UserDataMap>(new Map());
 
   useEffect(() => {
-    function onConnect(nextUserUid: string): void {
+    function onConnected(nextUserUid: string): void {
       setUserUid(nextUserUid);
     }
 
     function onOnlineRoomsUpdate(nextOnlineRooms: RoomDataMap): void {
-      setOnlineRooms(nextOnlineRooms);
+      setOnlineRooms(new Map(nextOnlineRooms));
     }
 
     function onOnlineUsersUpdate(nextOnlineUsers: UserDataMap): void {
-      setOnlineUsers(nextOnlineUsers);
+      setOnlineUsers(new Map(nextOnlineUsers));
     }
 
-    socket.off(EventName.Connect).on(EventName.Connect, onConnect);
+    socket.off(EventName.Connected).on(EventName.Connected, onConnected);
     socket
       .off(EventName.OnlineRoomsUpdate)
-      .on(EventName.OnlineRoomsUpdate, onOnlineUsersUpdate);
+      .on(EventName.OnlineRoomsUpdate, onOnlineRoomsUpdate);
     socket
       .off(EventName.OnlineUsersUpdate)
-      .on(EventName.OnlineUsersUpdate, onOnlineRoomsUpdate);
+      .on(EventName.OnlineUsersUpdate, onOnlineUsersUpdate);
+    socket
+      .off(EventName.ConnectionWelcomeMessage)
+      .on(EventName.ConnectionWelcomeMessage, toast);
+    socket.off(EventName.LeavingGame).on(EventName.LeavingGame, toast);
 
     return () => {
-      socket.off(EventName.Connect);
+      socket.off(EventName.Connected);
       socket.off(EventName.OnlineRoomsUpdate);
       socket.off(EventName.OnlineUsersUpdate);
     };
   }, []);
 
   useEffect(() => {
+    if (!userUid) return;
     toast(`Connected to server as ${userUid}`);
   }, [userUid]);
 
@@ -121,9 +130,9 @@ export function WebSocketProvider({ children }) {
     socket.emit(EventName.CreateGame);
   }
 
-  function leaveGame(): void {
+  function leaveGame(roomUid: string): void {
     if (!onlineUsers.get(userUid)?.roomUid) return;
-    socket.emit(EventName.LeaveGame);
+    socket.emit(EventName.LeaveGame, roomUid);
   }
 
   const listen = useCallback(
@@ -140,7 +149,7 @@ export function WebSocketProvider({ children }) {
   );
 
   return (
-    <WebsocketContext.Provider
+    <WebSocketContext.Provider
       value={{
         userUid,
         roomUid,
@@ -158,6 +167,6 @@ export function WebSocketProvider({ children }) {
       }}
     >
       {children}
-    </WebsocketContext.Provider>
+    </WebSocketContext.Provider>
   );
 }

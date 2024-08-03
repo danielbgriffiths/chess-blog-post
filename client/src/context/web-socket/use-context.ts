@@ -1,8 +1,8 @@
 import { useContext } from "react";
 
-import { WebSocketReturn } from "./provider.tsx";
-import { WebsocketContext } from "./create-context.tsx";
+import { WebSocketReturn } from "./provider";
+import { WebSocketContext } from "./create-context";
 
 export function useWebSocket(): WebSocketReturn {
-  return useContext(WebsocketContext);
+  return useContext(WebSocketContext);
 }

@@ -1,7 +1,7 @@
 import { createContext } from "react";
 
-import { WebSocketReturn } from "./provider.tsx";
+import { WebSocketReturn } from "./provider";
 
-export const WebsocketContext = createContext<WebSocketReturn>(
+export const WebSocketContext = createContext<WebSocketReturn>(
   {} as WebSocketReturn,
 );
