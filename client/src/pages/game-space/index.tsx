@@ -19,13 +19,15 @@ export function GameSpace() {
 
   function onLeaveGame(): void {
     toast(`Leaving ${websocket.roomUid} game`);
-    websocket.leaveGame(websocket.onlineUsers.get(websocket.userUid).roomUid);
+    websocket.leaveGame(
+      websocket.onlineUsers.get(websocket.userUid).roomUid,
+      (response) => {
+        if (response.status !== "success") return;
+        websocket.setRoomUid(undefined);
+        navigate("/");
+      },
+    );
   }
-
-  websocket.listen(EventName.GameLeft, () => {
-    websocket.setRoomUid(undefined);
-    navigate("/");
-  });
 
   websocket.listen(EventName.PlayerLeftGame, (watcherUids) => {
     if (!watcherUids.includes(websocket.userUid)) return;

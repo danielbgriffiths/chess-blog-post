@@ -3,17 +3,10 @@ import { Server } from "socket.io";
 enum EventName {
   Connected = "connected",
   ConnectionWelcomeMessage = "connection-welcome-message",
-  PlayGameSucceeded = "play-game-succeeded",
-  WatchGameSucceeded = "watch-game-succeeded",
-  PlayGameFailed = "play-game-failed",
-  WatchGameFailed = "watch-game-failed",
   JoinGameToWatch = "join-game-to-watch",
   JoinGameToPlay = "join-game-to-play",
-  CreateGameSucceeded = "create-game-succeeded",
-  CreateGameFailed = "create-game-failed",
   CreateGame = "create-game",
   LeaveGame = "leave-game",
-  GameLeft = "game-left",
   PlayerLeftGame = "player-left-game",
   LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
@@ -105,12 +98,12 @@ io.on(CONNECTION, (socket): void => {
     `A new user, ${socket.id}, has entered the server`,
   );
 
-  socket.on(EventName.JoinGameToWatch, (roomUid: string): void => {
+  socket.on(EventName.JoinGameToWatch, (roomUid: string, callback): void => {
     const userData = onlineUsers.get(socket.id)!;
     const roomData = onlineRooms.get(roomUid)!;
 
     if (userData.roomUid) {
-      socket.emit(EventName.WatchGameFailed);
+      callback({ status: "failed", roomUid, joinType: "watcher" });
       return;
     }
 
@@ -145,15 +138,15 @@ io.on(CONNECTION, (socket): void => {
       Array.from(onlineUsers.entries()) as any,
     );
 
-    socket.emit(EventName.WatchGameSucceeded, roomUid);
+    callback({ status: "success", roomUid, joinType: "watcher" });
   });
 
-  socket.on(EventName.JoinGameToPlay, (roomUid: string): void => {
+  socket.on(EventName.JoinGameToPlay, (roomUid: string, callback): void => {
     const userData = onlineUsers.get(socket.id)!;
     const roomData = onlineRooms.get(roomUid)!;
 
     if (userData.roomUid) {
-      socket.emit(EventName.PlayGameFailed);
+      callback({ status: "failed", roomUid, joinType: "player" });
       return;
     }
 
@@ -192,16 +185,16 @@ io.on(CONNECTION, (socket): void => {
       Array.from(onlineUsers.entries()) as any,
     );
 
-    socket.emit(EventName.PlayGameSucceeded, roomUid);
+    callback({ status: "success", roomUid, joinType: "player" });
   });
 
-  socket.on(EventName.CreateGame, (): void => {
-    const newGameRoomUid = `${socket.id}_room`;
+  socket.on(EventName.CreateGame, (callback): void => {
+    const newGameRoomUid = `game-room:${socket.id}`;
 
     const userData = onlineUsers.get(socket.id)!;
 
     if (userData.roomUid) {
-      socket.emit(EventName.CreateGameFailed);
+      callback({ status: "failed" });
       return;
     }
 
@@ -238,10 +231,10 @@ io.on(CONNECTION, (socket): void => {
       Array.from(onlineUsers.entries()) as any,
     );
 
-    socket.emit(EventName.CreateGameSucceeded, newGameRoomUid);
+    callback({ status: "success", roomUid: newGameRoomUid });
   });
 
-  socket.on(EventName.LeaveGame, (roomUid: string): void => {
+  socket.on(EventName.LeaveGame, (roomUid: string, callback): void => {
     const roomData = onlineRooms.get(roomUid)!;
 
     const isPlayer = roomData.playerUids.has(socket.id);
@@ -309,7 +302,7 @@ io.on(CONNECTION, (socket): void => {
       Array.from(onlineUsers.entries()) as any,
     );
 
-    socket.emit(EventName.GameLeft);
+    callback({ status: "success" });
   });
 
   socket.on(DISCONNECT, () => {

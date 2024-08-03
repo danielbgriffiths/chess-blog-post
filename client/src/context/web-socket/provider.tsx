@@ -4,20 +4,20 @@ import { toast } from "react-toastify";
 
 import { WebSocketContext } from "./create-context";
 
+export interface StatusCallbackPayload {
+  status: string;
+  [key: string]: unknown;
+}
+
+export type StatusCallback = (response: StatusCallbackPayload) => void;
+
 export enum EventName {
   Connected = "connected",
   ConnectionWelcomeMessage = "connection-welcome-message",
-  PlayGameSucceeded = "play-game-succeeded",
-  WatchGameSucceeded = "watch-game-succeeded",
-  PlayGameFailed = "play-game-failed",
-  WatchGameFailed = "watch-game-failed",
   JoinGameToWatch = "join-game-to-watch",
   JoinGameToPlay = "join-game-to-play",
-  CreateGameSucceeded = "create-game-succeeded",
-  CreateGameFailed = "create-game-failed",
   CreateGame = "create-game",
   LeaveGame = "leave-game",
-  GameLeft = "game-left",
   PlayerLeftGame = "player-left-game",
   LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
@@ -59,10 +59,10 @@ export interface WebSocketReturn {
   onlineRooms: RoomDataMap;
   onlineUsers: UserDataMap;
 
-  joinGameToWatch: (roomUid: string) => void;
-  joinGameToPlay: (roomUid: string) => void;
-  createGame: () => void;
-  leaveGame: (roomUid: string) => void;
+  joinGameToWatch: (roomUid: string, response: StatusCallback) => void;
+  joinGameToPlay: (roomUid: string, response: StatusCallback) => void;
+  createGame: (response: StatusCallback) => void;
+  leaveGame: (roomUid: string, response: StatusCallback) => void;
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
 
@@ -118,21 +118,21 @@ export function WebSocketProvider({ children }) {
     toast(`Connected to server as ${userUid}`);
   }, [userUid]);
 
-  function joinGameToWatch(roomUid: string): void {
-    socket.emit(EventName.JoinGameToWatch, roomUid);
+  function joinGameToWatch(roomUid: string, callback: StatusCallback): void {
+    socket.emit(EventName.JoinGameToWatch, roomUid, callback);
   }
 
-  function joinGameToPlay(roomUid: string): void {
-    socket.emit(EventName.JoinGameToPlay, roomUid);
+  function joinGameToPlay(roomUid: string, callback: StatusCallback): void {
+    socket.emit(EventName.JoinGameToPlay, roomUid, callback);
   }
 
-  function createGame(): void {
-    socket.emit(EventName.CreateGame);
+  function createGame(callback: StatusCallback): void {
+    socket.emit(EventName.CreateGame, callback);
   }
 
-  function leaveGame(roomUid: string): void {
+  function leaveGame(roomUid: string, callback: StatusCallback): void {
     if (!onlineUsers.get(userUid)?.roomUid) return;
-    socket.emit(EventName.LeaveGame, roomUid);
+    socket.emit(EventName.LeaveGame, roomUid, callback);
   }
 
   const listen = useCallback(

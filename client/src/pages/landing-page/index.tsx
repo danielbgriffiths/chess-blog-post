@@ -12,57 +12,53 @@ export function LandingPage() {
   const navigate = useNavigate();
 
   function onClickCreateGame(): void {
-    websocket.createGame();
+    websocket.createGame((response) => {
+      switch (response.status) {
+        case "success":
+          toast(`Success creating ${response.roomUid} game`);
+          websocket.setRoomUid(response.roomUid);
+          navigate(RouteName.GameSpace);
+          break;
+        default:
+          toast.error("Failed to create new game");
+          break;
+      }
+    });
   }
 
   function onClickPlayGame(roomUid: string): void {
-    websocket.joinGameToPlay(roomUid);
+    websocket.joinGameToPlay(roomUid, (response) => {
+      switch (response.status) {
+        case "success":
+          toast(`Success joining ${response.roomUid} as ${response.joinType}`);
+          websocket.setRoomUid(response.roomUid);
+          navigate(RouteName.GameSpace);
+          break;
+        default:
+          toast.error(
+            `Failed to join game ${response.roomUid} as ${response.joinType}`,
+          );
+          break;
+      }
+    });
   }
 
   function onClickWatchGame(roomUid: string): void {
-    websocket.joinGameToWatch(roomUid);
+    websocket.joinGameToWatch(roomUid, (response) => {
+      switch (response.status) {
+        case "success":
+          toast(`Success joining ${response.roomUid} as ${response.joinType}`);
+          websocket.setRoomUid(response.roomUid);
+          navigate(RouteName.GameSpace);
+          break;
+        default:
+          toast.error(
+            `Failed to join game ${response.roomUid} as ${response.joinType}`,
+          );
+          break;
+      }
+    });
   }
-
-  function onCreateGameSucceeded(roomUid: string): void {
-    toast(`Success creating ${roomUid} game`);
-    websocket.setRoomUid(roomUid);
-    navigate(RouteName.GameSpace);
-  }
-
-  function onCreateGameFailed(): void {
-    toast.error("Failed to create new game");
-  }
-
-  function onPlayOrWatchGameSucceeded(
-    roomUid: string,
-    successType: "player" | "watcher",
-  ): void {
-    toast(`Success joining ${roomUid} as ${successType}`);
-    websocket.setRoomUid(roomUid);
-    navigate(RouteName.GameSpace);
-  }
-
-  function onPlayOrWatchGameFailed(
-    roomUid: string,
-    failType: "player" | "watcher",
-  ): void {
-    toast.error(`Failed to join game ${roomUid} as ${failType}`);
-  }
-
-  websocket.listen(EventName.CreateGameSucceeded, onCreateGameSucceeded);
-  websocket.listen(EventName.CreateGameFailed, onCreateGameFailed);
-  websocket.listen(EventName.PlayGameSucceeded, (roomUid: string) =>
-    onPlayOrWatchGameSucceeded(roomUid, "player"),
-  );
-  websocket.listen(EventName.WatchGameSucceeded, (roomUid: string) =>
-    onPlayOrWatchGameSucceeded(roomUid, "watcher"),
-  );
-  websocket.listen(EventName.PlayGameFailed, (roomUid: string) =>
-    onPlayOrWatchGameFailed(roomUid, "player"),
-  );
-  websocket.listen(EventName.WatchGameFailed, (roomUid: string) =>
-    onPlayOrWatchGameFailed(roomUid, "watcher"),
-  );
 
   return (
     <>
