@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 
 import { OnlineUsers } from "../../models/online-user";
 import { OnlineRooms } from "../../models/online-room";
+import { EventName } from "../../types";
 
 export interface HandlersReturn {
   connection(): void;
@@ -18,15 +19,120 @@ export function handlers(
   onlineUsers: OnlineUsers,
   onlineRooms: OnlineRooms,
 ): HandlersReturn {
-  function connection() {}
+  function emitState(roomUid?: string): void {
+    io.emit(EventName.OnlineRoomsUpdate, onlineRooms.toSocket());
+    io.emit(EventName.OnlineUsersUpdate, onlineUsers.toSocket());
+    if (!roomUid) return;
+    socket.emit(EventName.RoomDataUpdate, room.toSocket());
+    const room = onlineRooms.get(roomUid);
+    io.to(roomUid).emit(EventName.RoomDataUpdate, room.toSocket());
+  }
 
-  function joinGameToWatch(roomUid: string, callback: Function): void {}
+  function connection() {
+    socket.emit(EventName.Connected, socket.id);
 
-  function joinGameToPlay(roomUid: string, callback: Function): void {}
+    onlineUsers.create(socket.id);
 
-  function createGame(callback: Function): void {}
+    socket.broadcast.emit(
+      EventName.ConnectionWelcomeMessage,
+      `A new user, ${socket.id}, has entered the server` as any,
+    );
 
-  function leaveGame(roomUid: string, callback: Function): void {}
+    emitState();
+  }
+
+  function joinGameToWatch(roomUid: string, callback: Function): void {
+    if (onlineUsers.get(socket.id).isInRoom()) {
+      callback({ status: "failed", roomUid, joinType: "watcher" });
+      return;
+    }
+
+    socket.join(roomUid);
+
+    onlineUsers.get(socket.id).addRoom(roomUid);
+    onlineUsers.get(socket.id).updateStatusPairedAsWatcher();
+    onlineRooms.get(roomUid).addWatcherToGame(socket.id);
+
+    emitState(roomUid);
+
+    callback({ status: "success", roomUid, joinType: "watcher" });
+  }
+
+  function joinGameToPlay(roomUid: string, callback: Function): void {
+    if (onlineUsers.get(socket.id).isInRoom() || !onlineRooms.has(roomUid)) {
+      callback({ status: "failed", roomUid, joinType: "player" });
+      return;
+    }
+
+    socket.join(roomUid);
+
+    for (const playerUid of onlineRooms.get(roomUid).getPlayerUids()) {
+      onlineUsers.get(playerUid).addRoom(roomUid);
+      onlineUsers.get(playerUid).updateStatusPairedAsPlayer();
+    }
+    onlineRooms.get(roomUid).addPlayerToGame(socket.id);
+
+    emitState(roomUid);
+
+    callback({ status: "success", roomUid, joinType: "player" });
+  }
+
+  function createGame(callback: Function): void {
+    if (onlineUsers.get(socket.id).isInRoom()) {
+      callback({ status: "failed" });
+      return;
+    }
+
+    const newGameRoomUid = onlineRooms.getRoomUid(socket.id);
+
+    socket.join(newGameRoomUid);
+
+    onlineRooms.create(newGameRoomUid, socket.id);
+    onlineUsers.get(socket.id).addRoom(newGameRoomUid);
+    onlineUsers.get(socket.id).updateStatusPending();
+
+    emitState(newGameRoomUid);
+
+    callback({ status: "success", roomUid: newGameRoomUid });
+  }
+
+  function leaveGame(roomUid: string, callback: Function): void {
+    const isPlayer = onlineRooms.get(roomUid).isPlayer(socket.id);
+    const isWatcher = onlineRooms.get(roomUid).isWatcher(socket.id);
+
+    socket.leave(roomUid);
+
+    io.to(roomUid).emit(
+      EventName.LeavingGame,
+      `${socket.id} stopped ${isPlayer ? "playing" : isWatcher ? "watching" : ""} game` as string,
+    );
+
+    if (isPlayer) {
+      io.to(roomUid).emit(
+        EventName.PlayerLeftGame,
+        onlineRooms.get(roomUid).watcherUidsToSocket(),
+      );
+
+      onlineUsers.get(socket.id).updateStatusWaiting();
+      onlineRooms.get(roomUid).deletePlayerUid(socket.id);
+
+      for (const watcherUid of onlineRooms.get(roomUid).getWatcherUids()) {
+        onlineUsers.get(watcherUid).updateStatusWaiting();
+        onlineRooms.get(roomUid).deleteWatcherUid(watcherUid);
+      }
+
+      for (const playerUid of onlineRooms.get(roomUid).getPlayerUids()) {
+        onlineUsers.get(playerUid).updateStatusPending();
+      }
+    } else if (isWatcher) {
+      onlineUsers.get(socket.id).updateStatusWaiting();
+      onlineRooms.get(roomUid).deleteWatcherUid(socket.id);
+    }
+
+    emitState(roomUid);
+
+    callback({ status: "success" });
+  }
 
   function disconnect(): void {}
 

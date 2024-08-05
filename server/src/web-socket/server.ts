@@ -4,7 +4,7 @@ import { CONNECTION, DISCONNECT } from "../constants";
 import { EventName } from "../types";
 import { OnlineUsers } from "../models/online-user";
 import { OnlineRooms } from "../models/online-room";
-import { compositions } from "./compositions";
+import { handlers } from "./handlers";
 
 export function createWebSocketServer(
   onlineUsers: OnlineUsers,
@@ -24,7 +24,7 @@ export function createWebSocketServer(
       createGame,
       leaveGame,
       disconnect,
-    } = compositions(io, socket, onlineUsers, onlineRooms);
+    } = handlers(io, socket, onlineUsers, onlineRooms);
 
     connection();
 

@@ -10,6 +10,7 @@ export enum EventName {
   LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
+  RoomDataUpdate = "room-data-update",
 }
 
 export enum UserStatus {
@@ -63,13 +64,11 @@ export interface OnlineRoom {
   uid: string;
   name: string;
   size: number;
-}
-
-export type RoomData = OnlineRoom & {
+  createdAt: string;
   playerUids: Set<string>;
   watcherUids: Set<string>;
   gameState: GameState;
-};
+}
 
 export type OnlineUserMap = Map<string, OnlineUser>;
 

@@ -18,27 +18,72 @@ export class OnlineUser implements IOnlineUser {
     this.losses = 0;
     this.roomUid = undefined;
   }
+
+  public isInRoom(): boolean {
+    return !!this.roomUid;
+  }
+
+  public addRoom(roomUid: string): boolean {
+    this.roomUid = roomUid;
+    return true;
+  }
+
+  public updateStatusPairedAsPlayer(): boolean {
+    if (!this.roomUid) return false;
+    this.status = UserStatus.PairedPlayer;
+    return true;
+  }
+
+  public updateStatusPairedAsWatcher(): boolean {
+    if (!this.roomUid) return false;
+    this.status = UserStatus.PairedWatcher;
+    return true;
+  }
+
+  public updateStatusPending(): boolean {
+    if (!this.roomUid) return false;
+    this.status = UserStatus.Pending;
+    return true;
+  }
+
+  public updateStatusWaiting(): boolean {
+    if (!this.roomUid) return false;
+    this.status = UserStatus.Waiting;
+    this.roomUid = undefined;
+    return true;
+  }
 }
 
 export class OnlineUsers {
-  data!: OnlineUserMap;
+  private data!: OnlineUserMap;
 
   constructor() {
     this.data = new Map<string, OnlineUser>();
   }
 
-  get(uid: string): OnlineUser {
+  public has(uid: string): boolean {
+    return this.data.has(uid);
+  }
+
+  public get(uid: string): OnlineUser {
     return this.data.get(uid);
   }
 
-  set(uid: string, data: Partial<OnlineUser>): void {
+  public set(uid: string, data: Partial<OnlineUser>): void {
     this.data.set(uid, {
       ...this.data.get(uid)!,
       ...data,
     });
   }
 
-  toSocket(): any {
+  public toSocket(): any {
     return Array.from(this.data.entries());
+  }
+
+  public create(uid: string): OnlineUser {
+    if (this.has(uid)) return this.get(uid)!;
+    const newUser = new OnlineUser(uid);
+    this.set(uid, newUser);
+    return newUser;
   }
 }
