@@ -1,63 +1,53 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { EventName } from "../../context/web-socket/provider";
-import { useWebSocket } from "../../context/web-socket/use-context";
 import { UsersList } from "./components/users-list";
 import { InitialGameClickZone } from "./components/initial-game-click-zone";
 import { RouteName } from "../../router";
+import { useGameState } from "../../hooks/use-game-state";
+import { useWebSocket } from "../../context/web-socket/use-context";
 
 export function LandingPage() {
   const websocket = useWebSocket();
+  const gameState = useGameState();
   const navigate = useNavigate();
 
   function onClickCreateGame(): void {
-    websocket.createGame((response) => {
-      switch (response.status) {
-        case "success":
-          toast(`Success creating ${response.roomUid} game`);
-          websocket.setRoomUid(response.roomUid);
-          navigate(RouteName.GameSpace);
-          break;
-        default:
-          toast.error("Failed to create new game");
-          break;
-      }
-    });
+    gameState.createGame(
+      (response) => {
+        toast(`Success creating ${response.room.uid} game`);
+        navigate(RouteName.GameSpace);
+      },
+      () => {
+        toast.error("Failed to create new game");
+      },
+    );
   }
 
   function onClickPlayGame(roomUid: string): void {
-    websocket.joinGameToPlay(roomUid, (response) => {
-      switch (response.status) {
-        case "success":
-          toast(`Success joining ${response.roomUid} as ${response.joinType}`);
-          websocket.setRoomUid(response.roomUid);
-          navigate(RouteName.GameSpace);
-          break;
-        default:
-          toast.error(
-            `Failed to join game ${response.roomUid} as ${response.joinType}`,
-          );
-          break;
-      }
-    });
+    gameState.joinGameToPlay(
+      roomUid,
+      () => {
+        toast(`Success joining ${roomUid} as player`);
+        navigate(RouteName.GameSpace);
+      },
+      () => {
+        toast.error(`Failed to join game ${roomUid} as player`);
+      },
+    );
   }
 
   function onClickWatchGame(roomUid: string): void {
-    websocket.joinGameToWatch(roomUid, (response) => {
-      switch (response.status) {
-        case "success":
-          toast(`Success joining ${response.roomUid} as ${response.joinType}`);
-          websocket.setRoomUid(response.roomUid);
-          navigate(RouteName.GameSpace);
-          break;
-        default:
-          toast.error(
-            `Failed to join game ${response.roomUid} as ${response.joinType}`,
-          );
-          break;
-      }
-    });
+    gameState.joinGameToWatch(
+      roomUid,
+      () => {
+        toast(`Success joining ${roomUid} as observer`);
+        navigate(RouteName.GameSpace);
+      },
+      () => {
+        toast.error(`Failed to join game ${roomUid} as observer`);
+      },
+    );
   }
 
   return (
@@ -88,7 +78,7 @@ export function LandingPage() {
               Select a player who is in pending state to enter their game!
             </p>
           </div>
-          {websocket.onlineUsers.size > 1 ? (
+          {websocket.onlineRooms.size > 1 ? (
             <UsersList
               onlineRooms={websocket.onlineRooms}
               otherOnlineUsers={Array.from(

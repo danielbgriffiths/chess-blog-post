@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import { toast } from "react-toastify";
 
 import { WebSocketContext } from "./create-context";
+import { GameState, Side } from "../../hooks/use-game-state";
 
 export interface StatusCallbackPayload {
   status: string;
@@ -19,9 +20,17 @@ export enum EventName {
   CreateGame = "create-game",
   LeaveGame = "leave-game",
   PlayerLeftGame = "player-left-game",
+  PlayerJoinedGame = "player-joined-game",
   LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
+  ClickCell = "click-cell",
+  MouseEnterCell = "mouse-enter-cell",
+  MouseLeaveCell = "mouse-leave-cell",
+  CellClicked = "cell-clicked",
+  MouseEnteredCell = "mouse-entered-cell",
+  MouseLeftCell = "mouse-left-cell",
+  SelectSide = "select-side",
 }
 
 export enum UserStatus {
@@ -31,7 +40,7 @@ export enum UserStatus {
   PairedWatcher,
 }
 
-export type UserData = {
+export type OnlineUser = {
   uid: string;
   username: string;
   status: UserStatus;
@@ -41,32 +50,40 @@ export type UserData = {
   roomUid?: string;
 };
 
-export type RoomData = {
+export interface OnlineRoom {
   uid: string;
   name: string;
   size: number;
+}
+
+export type RoomData = OnlineRoom & {
+  gameState: GameState;
   playerUids: Set<string>;
-  watcherUids: Set<String>;
+  watcherUids: Set<string>;
 };
 
-export type UserDataMap = Map<string, UserData>;
+export type OnlineRoomMap = Map<string, OnlineRoom>;
 
-export type RoomDataMap = Map<string, RoomData>;
+export type OnlineUserMap = Map<string, OnlineUser>;
 
 export interface WebSocketReturn {
   userUid: string;
-  roomUid?: string;
-  onlineRooms: RoomDataMap;
-  onlineUsers: UserDataMap;
+  room?: RoomData;
+  onlineRooms: OnlineRoomMap;
+  onlineUsers: OnlineUserMap;
 
   joinGameToWatch: (roomUid: string, response: StatusCallback) => void;
   joinGameToPlay: (roomUid: string, response: StatusCallback) => void;
   createGame: (response: StatusCallback) => void;
-  leaveGame: (roomUid: string, response: StatusCallback) => void;
+  leaveGame: (response: StatusCallback) => void;
+  mouseLeaveCell: (cellUid: string, response: StatusCallback) => void;
+  mouseEnterCell: (cellUid: string, response: StatusCallback) => void;
+  clickCell: (cellUid: string, response: StatusCallback) => void;
+  selectSide: (selectedSide: Side, callback: StatusCallback) => void;
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
 
-  setRoomUid: (nextRoomUid?: string) => void;
+  setRoom: (nextRoom?: RoomData) => void;
 }
 
 const SOCKET_SERVER_URL = "http://localhost:4000";
@@ -77,21 +94,25 @@ export function WebSocketProvider({ children }) {
   const [userUid, setUserUid] = useState<string>(
     undefined as unknown as string,
   );
-  const [roomUid, setRoomUid] = useState<string | undefined>(undefined);
-  const [onlineRooms, setOnlineRooms] = useState<RoomDataMap>(new Map());
-  const [onlineUsers, setOnlineUsers] = useState<UserDataMap>(new Map());
+  const [room, setRoom] = useState<RoomData | undefined>(undefined);
+  const [onlineRooms, setOnlineRooms] = useState<OnlineRoomMap>(new Map());
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUserMap>(new Map());
 
   useEffect(() => {
     function onConnected(nextUserUid: string): void {
       setUserUid(nextUserUid);
     }
 
-    function onOnlineRoomsUpdate(nextOnlineRooms: RoomDataMap): void {
+    function onOnlineRoomsUpdate(nextOnlineRooms: OnlineRoomMap): void {
       setOnlineRooms(new Map(nextOnlineRooms));
     }
 
-    function onOnlineUsersUpdate(nextOnlineUsers: UserDataMap): void {
+    function onOnlineUsersUpdate(nextOnlineUsers: OnlineUserMap): void {
       setOnlineUsers(new Map(nextOnlineUsers));
+    }
+
+    function onPlayerJoinedGame(playerUid: string): void {
+      toast(`${playerUid} joined game!`);
     }
 
     socket.off(EventName.Connected).on(EventName.Connected, onConnected);
@@ -105,6 +126,9 @@ export function WebSocketProvider({ children }) {
       .off(EventName.ConnectionWelcomeMessage)
       .on(EventName.ConnectionWelcomeMessage, toast);
     socket.off(EventName.LeavingGame).on(EventName.LeavingGame, toast);
+    socket
+      .off(EventName.PlayerJoinedGame)
+      .on(EventName.PlayerJoinedGame, onPlayerJoinedGame);
 
     return () => {
       socket.off(EventName.Connected);
@@ -130,9 +154,24 @@ export function WebSocketProvider({ children }) {
     socket.emit(EventName.CreateGame, callback);
   }
 
-  function leaveGame(roomUid: string, callback: StatusCallback): void {
-    if (!onlineUsers.get(userUid)?.roomUid) return;
-    socket.emit(EventName.LeaveGame, roomUid, callback);
+  function leaveGame(callback: StatusCallback): void {
+    socket.emit(EventName.LeaveGame, callback);
+  }
+
+  function mouseEnterCell(cellUid: string, callback: StatusCallback): void {
+    socket.emit(EventName.MouseEnterCell, cellUid, callback);
+  }
+
+  function mouseLeaveCell(cellUid: string, callback: StatusCallback): void {
+    socket.emit(EventName.MouseLeaveCell, cellUid, callback);
+  }
+
+  function clickCell(cellUid: string, callback: StatusCallback): void {
+    socket.emit(EventName.ClickCell, cellUid, callback);
+  }
+
+  function selectSide(selectedSide: Side, callback: StatusCallback): void {
+    socket.emit(EventName.SelectSide, selectedSide, callback);
   }
 
   const listen = useCallback(
@@ -152,7 +191,7 @@ export function WebSocketProvider({ children }) {
     <WebSocketContext.Provider
       value={{
         userUid,
-        roomUid,
+        room,
         onlineUsers,
         onlineRooms,
 
@@ -160,10 +199,14 @@ export function WebSocketProvider({ children }) {
         joinGameToPlay,
         createGame,
         leaveGame,
+        mouseEnterCell,
+        mouseLeaveCell,
+        clickCell,
+        selectSide,
 
         listen,
 
-        setRoomUid,
+        setRoom,
       }}
     >
       {children}

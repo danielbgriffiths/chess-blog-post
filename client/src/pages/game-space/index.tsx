@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { GameProvider } from "../../context/game/provider";
+import { BoardProvider } from "../../context/board/provider";
 import { ChessGame } from "./components/chess-game";
 import { useWebSocket } from "../../context/web-socket/use-context";
 import { EventName } from "../../context/web-socket/provider";
@@ -18,20 +18,17 @@ export function GameSpace() {
   }
 
   function onLeaveGame(): void {
-    toast(`Leaving ${websocket.roomUid} game`);
-    websocket.leaveGame(
-      websocket.onlineUsers.get(websocket.userUid).roomUid,
-      (response) => {
-        if (response.status !== "success") return;
-        websocket.setRoomUid(undefined);
-        navigate("/");
-      },
-    );
+    toast(`Leaving ${websocket.room!.uid} game`);
+    websocket.leaveGame((response) => {
+      if (response.status !== "success") return;
+      websocket.setRoom(undefined);
+      navigate("/");
+    });
   }
 
   websocket.listen(EventName.PlayerLeftGame, (watcherUids) => {
     if (!watcherUids.includes(websocket.userUid)) return;
-    websocket.setRoomUid(undefined);
+    websocket.setRoom(undefined);
     navigate("/");
   });
 
@@ -40,8 +37,8 @@ export function GameSpace() {
   }
 
   return (
-    <GameProvider>
+    <BoardProvider>
       <ChessGame onLeaveGame={onLeaveGame} />
-    </GameProvider>
+    </BoardProvider>
   );
 }

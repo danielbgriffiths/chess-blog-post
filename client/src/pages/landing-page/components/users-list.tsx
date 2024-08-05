@@ -1,49 +1,21 @@
 import {
-  RoomDataMap,
-  UserData,
+  OnlineRoomMap,
+  OnlineUser,
   UserStatus,
 } from "../../../context/web-socket/provider";
+import { getStatusColor, getStatusLabel } from "../../../utils";
 
 export function UsersList(props: {
-  otherOnlineUsers: UserData[];
-  onlineRooms: RoomDataMap;
+  otherOnlineUsers: OnlineUser[];
+  onlineRooms: OnlineRoomMap;
   onClickPlayGame: (roomUid: string) => void;
   onClickWatchGame: (roomUid: string) => void;
 }) {
   return (
     <ul role="list" className="divide-y divide-gray-100">
       {props.otherOnlineUsers.map((user, userIdx) => {
-        const getStatusColor = () => {
-          switch (user.status) {
-            case UserStatus.Waiting:
-              return "yellow";
-            case UserStatus.Pending:
-              return "green";
-            case UserStatus.PairedPlayer:
-            case UserStatus.PairedWatcher:
-              return "red";
-            default:
-              return "slate";
-          }
-        };
-
-        const getStatusLabel = () => {
-          switch (user.status) {
-            case UserStatus.Waiting:
-              return "Waiting";
-            case UserStatus.Pending:
-              return "Game Available";
-            case UserStatus.PairedPlayer:
-              return "Paired as Player";
-            case UserStatus.PairedWatcher:
-              return "Paired as Observer";
-            default:
-              return "Unknown";
-          }
-        };
-
-        const statusColor = getStatusColor();
-        const statusLabel = getStatusLabel();
+        const statusColor = getStatusColor(user.status);
+        const statusLabel = getStatusLabel(user.status);
         const room = props.onlineRooms.get(user.roomUid!);
 
         return (
