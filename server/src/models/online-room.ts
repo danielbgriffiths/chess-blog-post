@@ -77,6 +77,10 @@ export class OnlineRoom implements IOnlineRoom {
     return this.watcherUids.has(userUid);
   }
 
+  public updateSide(userUid: string, side: Side): void {
+    this.gameState[side] = userUid;
+  }
+
   public toSummarySocket(): Pick<
     IOnlineRoom,
     "uid" | "name" | "size" | "createdAt"

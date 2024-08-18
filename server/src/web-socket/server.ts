@@ -24,27 +24,26 @@ export function createWebSocketServer(
       createGame,
       leaveGame,
       disconnect,
+      selectSide,
+      clickCell,
+      mouseEnterCell,
+      mouseLeaveCell,
     } = handlers(io, socket, onlineUsers, onlineRooms);
 
     connection();
 
-    socket.on(EventName.JoinGameToWatch, (roomUid: string, callback) => {
-      return joinGameToWatch(roomUid, callback);
-    });
-    socket.on(EventName.JoinGameToPlay, (roomUid: string, callback) => {
-      return joinGameToPlay(roomUid, callback);
-    });
-
-    socket.on(EventName.CreateGame, (callback) => {
-      return createGame(callback);
-    });
-
-    socket.on(EventName.LeaveGame, (roomUid: string, callback) => {
-      return leaveGame(roomUid, callback);
-    });
-
-    socket.on(DISCONNECT, () => {
-      return disconnect();
-    });
+    for (const listener of [
+      { eventName: EventName.JoinGameToPlay, handler: joinGameToPlay },
+      { eventName: EventName.JoinGameToWatch, handler: joinGameToWatch },
+      { eventName: EventName.CreateGame, handler: createGame },
+      { eventName: EventName.LeaveGame, handler: leaveGame },
+      { eventName: EventName.SelectSide, handler: selectSide },
+      { eventName: EventName.ClickCell, handler: clickCell },
+      { eventName: EventName.MouseEnterCell, handler: mouseEnterCell },
+      { eventName: EventName.MouseLeaveCell, handler: mouseLeaveCell },
+      { eventName: DISCONNECT, handler: disconnect },
+    ]) {
+      socket.on(listener.eventName, listener.handler);
+    }
   });
 }

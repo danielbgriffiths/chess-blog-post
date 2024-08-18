@@ -11,6 +11,10 @@ export enum EventName {
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
   RoomDataUpdate = "room-data-update",
+  SelectSide = "select-side",
+  ClickCell = "click-cell",
+  MouseEnterCell = "mouse-enter-cell",
+  MouseLeaveCell = "mouse-leave-cell",
 }
 
 export enum UserStatus {

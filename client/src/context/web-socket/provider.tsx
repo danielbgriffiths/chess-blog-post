@@ -31,6 +31,7 @@ export enum EventName {
   MouseEnteredCell = "mouse-entered-cell",
   MouseLeftCell = "mouse-left-cell",
   SelectSide = "select-side",
+  RoomDataUpdate = "room-data-update",
 }
 
 export enum UserStatus {
@@ -111,6 +112,14 @@ export function WebSocketProvider({ children }) {
       setOnlineUsers(new Map(nextOnlineUsers));
     }
 
+    function onRoomDataUpdate(nextRoomData: RoomData): void {
+      setRoom({
+        ...nextRoomData,
+        playerUids: new Set(nextRoomData.playerUids),
+        watcherUids: new Set(nextRoomData.watcherUids),
+      });
+    }
+
     function onPlayerJoinedGame(playerUid: string): void {
       toast(`${playerUid} joined game!`);
     }
@@ -129,6 +138,9 @@ export function WebSocketProvider({ children }) {
     socket
       .off(EventName.PlayerJoinedGame)
       .on(EventName.PlayerJoinedGame, onPlayerJoinedGame);
+    socket
+      .off(EventName.RoomDataUpdate)
+      .on(EventName.RoomDataUpdate, onRoomDataUpdate);
 
     return () => {
       socket.off(EventName.Connected);

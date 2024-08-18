@@ -22,7 +22,11 @@ export function SideSelector() {
   }, [gameState.whiteUid, gameState.blackUid]);
 
   function onSelectWhite(): void {
-    if (gameState.isWatcher || gameState.isOpponentWhite) {
+    if (
+      gameState.isWatcher ||
+      gameState.isOpponentWhite ||
+      gameState.isUserWhite
+    ) {
       return;
     }
 
@@ -32,7 +36,11 @@ export function SideSelector() {
   }
 
   function onSelectBlack(): void {
-    if (gameState.isWatcher || gameState.isOpponentBlack) {
+    if (
+      gameState.isWatcher ||
+      gameState.isOpponentBlack ||
+      gameState.isUserBlack
+    ) {
       return;
     }
 

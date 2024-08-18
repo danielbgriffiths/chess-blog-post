@@ -1,11 +1,7 @@
 import { useState } from "react";
 
 import { BoardContext } from "./create-context";
-import {
-  Piece,
-  Side,
-  useGameState,
-} from "../../hooks/use-game-state";
+import { Piece, Side, useGameState } from "../../hooks/use-game-state";
 
 export interface CellData {
   piece?: Piece;
@@ -91,85 +87,34 @@ export function BoardProvider({ children }) {
     CellData | undefined
   >(undefined);
 
-  function onClickCell(uid: string, isIncoming: boolean): void {
-    if (!gameState.canInteractWithCell(uid)) return;
-
-    setCells((prevCells) => {
-      const newCells = new Map(prevCells);
-      const currentCell = newCells.get(uid);
-
-      if (lastSelectedCell && lastSelectedCell.uid !== uid) {
-        const previousCell = newCells.get(lastSelectedCell.uid);
-        previousCell.isSelected = false;
-        newCells.set(previousCell.uid, previousCell);
-      }
-
-      currentCell.isSelected = !currentCell.isSelected;
-      newCells.set(uid, currentCell);
-      setLastSelectedCell(currentCell.isSelected ? currentCell : null);
-
-      if (!isIncoming) {
-        gameState.clickCell(uid, () => {
-          // rollback
-        });
-      }
-
-      return newCells;
-    });
-  }
-
   function onMouseEnterCell(uid: string): void {
-    if (!gameState.canInteractWithCell(uid)) return;
-
-    setCells((prevCells) => {
-      const nextCells = new Map(prevCells);
-      const currentCell = nextCells.get(uid);
-
-      if (lastHoveredCell && lastHoveredCell.uid !== uid) {
-        lastHoveredCell.isHovered = false;
-        nextCells.set(lastHoveredCell.uid, lastHoveredCell);
-      }
-
-      currentCell.isHovered = true;
-      nextCells.set(uid, currentCell);
-      setLastHoveredCell(currentCell);
-
-      gameState.mouseEnterCell(uid, () => {
-        // rollback
-      });
-
-      return nextCells;
-    });
+    //
   }
 
   function onMouseLeaveCell(uid: string): void {
-    if (!gameState.canInteractWithCell(uid)) return;
-
-    setCells((prevCells) => {
-      const newCells = new Map(prevCells);
-      const currentCell = newCells.get(uid);
-
-      currentCell.isHovered = false;
-      newCells.set(uid, currentCell);
-
-      if (lastHoveredCell && lastHoveredCell.uid === uid) {
-        setLastHoveredCell(null);
-      }
-
-      gameState.mouseLeaveCell(uid);
-
-      return newCells;
-    });
+    //
   }
 
-  gameState.cellClicked(uid, (uid: string): void => {
-    onClickCell(uid, true)
-  });
-  gameState.mouseEnteredCell(uid, (uid: string): void => {
-    onMouseEnterCell(uid, true);
-  });
-  gameState.mouseLeftCell(uid, (uid: string): void => {
-    onMouseLeaveCell(uid, true),
+  function onClickCell(uid: string): void {
+    if (!gameState.canInteractWithCell(uid)) return;
+
+    if (!!lastSelectedCell?.uid && lastSelectedCell?.uid !== uid) {
+      gameState.clickCell(
+        { to: uid, from: lastSelectedCell?.uid },
+        (response) => {
+          // Handle change to board state based on this new gameState
+        },
+        (response) => {
+          // Handle change to board state based on this new gameState
+        },
+      );
+    } else {
+      // Update selected cell
+    }
+  }
+
+  gameState.cellClicked((payload) => {
+    // Handle board change state based on this new game state
   });
 
   return (
@@ -178,9 +123,9 @@ export function BoardProvider({ children }) {
         board,
         cells,
 
-        onClickCell,
         onMouseEnterCell,
         onMouseLeaveCell,
+        onClickCell,
       }}
     >
       {children}

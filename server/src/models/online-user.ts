@@ -1,4 +1,4 @@
-import { OnlineUser as IOnlineUser, OnlineUserMap, UserStatus } from "../types";
+import { OnlineUser as IOnlineUser, UserStatus } from "../types";
 
 export class OnlineUser implements IOnlineUser {
   uid!: string;
@@ -21,6 +21,10 @@ export class OnlineUser implements IOnlineUser {
 
   public isInRoom(): boolean {
     return !!this.roomUid;
+  }
+
+  public getRoomUid(): string {
+    return this.roomUid;
   }
 
   public addRoom(roomUid: string): boolean {
@@ -55,7 +59,7 @@ export class OnlineUser implements IOnlineUser {
 }
 
 export class OnlineUsers {
-  private data!: OnlineUserMap;
+  private data!: Map<string, OnlineUser>;
 
   constructor() {
     this.data = new Map<string, OnlineUser>();
@@ -66,12 +70,12 @@ export class OnlineUsers {
   }
 
   public get(uid: string): OnlineUser {
-    return this.data.get(uid);
+    return this.data.get(uid)!;
   }
 
   public set(uid: string, data: Partial<OnlineUser>): void {
     this.data.set(uid, {
-      ...this.data.get(uid)!,
+      ...((this.data.get(uid) || {}) as OnlineUser),
       ...data,
     });
   }

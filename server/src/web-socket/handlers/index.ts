@@ -2,15 +2,19 @@ import { Server, Socket } from "socket.io";
 
 import { OnlineUsers } from "../../models/online-user";
 import { OnlineRooms } from "../../models/online-room";
-import { EventName } from "../../types";
+import { EventName, Side } from "../../types";
 
 export interface HandlersReturn {
   connection(): void;
   joinGameToWatch(roomUid: string, callback: Function): void;
   joinGameToPlay(roomUid: string, callback: Function): void;
   createGame(callback: Function): void;
-  leaveGame(roomUid: string, callback: Function): void;
+  leaveGame(callback: Function): void;
   disconnect(): void;
+  selectSide(side: Side, callback: Function): void;
+  clickCell(cellUid: string, callback: Function): void;
+  mouseEnterCell(cellUid: string, callback: Function): void;
+  mouseLeaveCell(cellUid: string, callback: Function): void;
 }
 
 export function handlers(
@@ -23,8 +27,8 @@ export function handlers(
     io.emit(EventName.OnlineRoomsUpdate, onlineRooms.toSocket());
     io.emit(EventName.OnlineUsersUpdate, onlineUsers.toSocket());
     if (!roomUid) return;
-    socket.emit(EventName.RoomDataUpdate, room.toSocket());
     const room = onlineRooms.get(roomUid);
+    socket.emit(EventName.RoomDataUpdate, room.toSocket());
     io.to(roomUid).emit(EventName.RoomDataUpdate, room.toSocket());
   }
 
@@ -55,7 +59,10 @@ export function handlers(
 
     emitState(roomUid);
 
-    callback({ status: "success", roomUid, joinType: "watcher" });
+    callback({
+      status: "success",
+      room: onlineRooms.get(roomUid).toSocket(),
+    });
   }
 
   function joinGameToPlay(roomUid: string, callback: Function): void {
@@ -74,7 +81,7 @@ export function handlers(
 
     emitState(roomUid);
 
-    callback({ status: "success", roomUid, joinType: "player" });
+    callback({ status: "success", room: onlineRooms.get(roomUid).toSocket() });
   }
 
   function createGame(callback: Function): void {
@@ -91,12 +98,17 @@ export function handlers(
     onlineUsers.get(socket.id).addRoom(newGameRoomUid);
     onlineUsers.get(socket.id).updateStatusPending();
 
+    // TODO will this cause a race condition with the way we handle room state and navigation on front-end
     emitState(newGameRoomUid);
 
-    callback({ status: "success", roomUid: newGameRoomUid });
+    callback({
+      status: "success",
+      room: onlineRooms.get(newGameRoomUid).toSocket(),
+    });
   }
 
-  function leaveGame(roomUid: string, callback: Function): void {
+  function leaveGame(callback: Function): void {
+    const roomUid = onlineUsers.get(socket.id).getRoomUid();
     const isPlayer = onlineRooms.get(roomUid).isPlayer(socket.id);
     const isWatcher = onlineRooms.get(roomUid).isWatcher(socket.id);
 
@@ -134,6 +146,43 @@ export function handlers(
     callback({ status: "success" });
   }
 
+  function selectSide(side: Side, callback: Function): void {
+    const roomUid = onlineUsers.get(socket.id).getRoomUid();
+
+    if (!roomUid) {
+      return callback({ status: "failed" });
+    }
+
+    onlineRooms.get(roomUid).updateSide(socket.id, side);
+
+    emitState(roomUid);
+
+    callback({ status: "success" });
+  }
+
+  function clickCell(
+    move: { to: string; from: string },
+    callback: Function,
+  ): void {
+    const roomUid = onlineUsers.get(socket.id).getRoomUid();
+
+    if (!roomUid) {
+      return callback({ status: "failed" });
+    }
+
+    onlineRooms.get(roomUid).updateGameState(socket.id, move);
+
+    emitState(roomUid);
+
+    io.to(roomUid).emit("cell-clicked", move);
+
+    callback({ status: "success" });
+  }
+
+  function mouseEnterCell(cellUid: string, callback: Function): void {}
+
+  function mouseLeaveCell(cellUid: string, callback: Function): void {}
+
   function disconnect(): void {}
 
   return {
@@ -143,5 +192,9 @@ export function handlers(
     createGame,
     leaveGame,
     disconnect,
+    selectSide,
+    clickCell,
+    mouseEnterCell,
+    mouseLeaveCell,
   };
 }

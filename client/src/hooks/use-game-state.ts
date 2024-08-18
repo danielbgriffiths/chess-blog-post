@@ -60,6 +60,8 @@ export interface GameStateReturn {
   isUserBlack: boolean;
   isUsersTurn: boolean;
 
+  canInteractWithCell: (cellUid: string) => boolean;
+
   createGame: (
     successCallback: StatusCallback,
     errorCallback: StatusCallback,
@@ -75,6 +77,12 @@ export interface GameStateReturn {
     errorCallback: StatusCallback,
   ) => void;
   selectSide: (side: Side, errorCallback: StatusCallback) => void;
+  clickCell: (
+    uid: string,
+    onSuccess: StatusCallback,
+    onFail: StatusCallback,
+  ) => void;
+  cellClicked: (onSuccess: any) => void;
 }
 
 export function useGameState(): GameStateReturn {
@@ -110,6 +118,10 @@ export function useGameState(): GameStateReturn {
   const isUserBlack = blackUid === websocket.userUid;
   const isUsersTurn = turnUid === websocket.userUid;
 
+  function canInteractWithCell(cellUid: string): boolean {
+    return false;
+  }
+
   function createGame(
     successCallback: StatusCallback,
     errorCallback: StatusCallback,
@@ -135,7 +147,6 @@ export function useGameState(): GameStateReturn {
     websocket.joinGameToPlay(roomUid, (response) => {
       switch (response.status) {
         case "success":
-          toast(`Success joining ${roomUid} as ${response.joinType}`);
           websocket.setRoom(response.room as RoomData);
           successCallback(response);
           break;
@@ -176,21 +187,25 @@ export function useGameState(): GameStateReturn {
     });
   }
 
-  function clickCell(uid: string, rollback: StatusCallback): void {
-    const nextGameState = {} as GameState;
-
-    websocket.clickCell(nextGameState, (response) => {
+  function clickCell(
+    uid: string,
+    onSuccess: StatusCallback,
+    onFail: StatusCallback,
+  ): void {
+    websocket.clickCell(uid, (response) => {
       if (response.status === "failed") {
-        return rollback(response);
+        return onFail(response);
       }
+
+      return onSuccess(response);
     });
   }
 
-  const clickedCell = useCallback(
-    (uid: string) => {
-      websocket.listen(EventName.CellClicked);
+  const cellClicked = useCallback(
+    (onSuccess) => {
+      websocket.listen(EventName.CellClicked, onSuccess);
     },
-    [userUid],
+    [websocket.userUid],
   );
 
   return {
@@ -206,15 +221,13 @@ export function useGameState(): GameStateReturn {
     isUserBlack,
     isUsersTurn,
 
+    canInteractWithCell,
+
     createGame,
     joinGameToPlay,
     joinGameToWatch,
     selectSide,
     clickCell,
-    mouseEnterCell,
-    mouseLeaveCell,
-    clickedCell,
-    mouseEnteredCell,
-    mouseLeftCell,
+    cellClicked,
   };
 }
