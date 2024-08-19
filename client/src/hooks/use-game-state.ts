@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 
 import { useWebSocket } from "../context/web-socket/use-context";
-import { toast } from "react-toastify";
 import {
   EventName,
   RoomData,
@@ -31,10 +30,15 @@ export enum Side {
 }
 
 export interface HistoryRecord {
+  timestamp: string;
   piece: Piece;
   from: string;
   to: string;
   turn: Side;
+  capture?: Piece;
+  fromCheck: boolean;
+  toCheck: boolean;
+  toCheckMate: boolean;
 }
 
 export interface GameState {
@@ -42,8 +46,8 @@ export interface GameState {
   black?: string;
   turn: Side;
   status: GameStatus;
-  whiteCaptures: Piece[];
-  blackCaptures: Piece[];
+  whiteCaptures: HistoryRecord[];
+  blackCaptures: HistoryRecord[];
   history: HistoryRecord[];
 }
 
@@ -59,6 +63,9 @@ export interface GameStateReturn {
   isUserWhite: boolean;
   isUserBlack: boolean;
   isUsersTurn: boolean;
+  whiteCaptures: HistoryRecord[];
+  blackCaptures: HistoryRecord[];
+  history: HistoryRecord[];
 
   canInteractWithCell: (cellUid: string) => boolean;
 
@@ -77,12 +84,12 @@ export interface GameStateReturn {
     errorCallback: StatusCallback,
   ) => void;
   selectSide: (side: Side, errorCallback: StatusCallback) => void;
-  clickCell: (
-    uid: string,
+  clickCellToMove: (
+    nextGameState: GameState,
     onSuccess: StatusCallback,
     onFail: StatusCallback,
   ) => void;
-  cellClicked: (onSuccess: any) => void;
+  cellClickedWithMove: (onSuccess: any) => void;
 }
 
 export function useGameState(): GameStateReturn {
@@ -112,6 +119,21 @@ export function useGameState(): GameStateReturn {
     return websocket.room?.gameState.status!;
   }, [websocket.room]);
 
+  const whiteCaptures = useMemo<HistoryRecord[]>(
+    () => websocket.room?.gameState.whiteCaptures ?? [],
+    [websocket.room],
+  );
+
+  const blackCaptures = useMemo<HistoryRecord[]>(
+    () => websocket.room?.gameState.blackCaptures ?? [],
+    [websocket.room],
+  );
+
+  const history = useMemo<HistoryRecord[]>(
+    () => websocket.room?.gameState.history ?? [],
+    [websocket.room],
+  );
+
   const isOpponentWhite = !!whiteUid && whiteUid !== websocket.userUid;
   const isOpponentBlack = !!blackUid && blackUid !== websocket.userUid;
   const isUserWhite = whiteUid === websocket.userUid;
@@ -119,7 +141,7 @@ export function useGameState(): GameStateReturn {
   const isUsersTurn = turnUid === websocket.userUid;
 
   function canInteractWithCell(cellUid: string): boolean {
-    return false;
+    return turnUid !== websocket.userUid;
   }
 
   function createGame(
@@ -187,12 +209,12 @@ export function useGameState(): GameStateReturn {
     });
   }
 
-  function clickCell(
-    uid: string,
+  function clickCellToMove(
+    nextGameState: GameState,
     onSuccess: StatusCallback,
     onFail: StatusCallback,
   ): void {
-    websocket.clickCell(uid, (response) => {
+    websocket.clickCellToMove(nextGameState, (response) => {
       if (response.status === "failed") {
         return onFail(response);
       }
@@ -201,9 +223,9 @@ export function useGameState(): GameStateReturn {
     });
   }
 
-  const cellClicked = useCallback(
+  const cellClickedWithMove = useCallback(
     (onSuccess) => {
-      websocket.listen(EventName.CellClicked, onSuccess);
+      websocket.listen(EventName.CellClickedWithMove, onSuccess);
     },
     [websocket.userUid],
   );
@@ -220,6 +242,9 @@ export function useGameState(): GameStateReturn {
     isUserWhite,
     isUserBlack,
     isUsersTurn,
+    whiteCaptures,
+    blackCaptures,
+    history,
 
     canInteractWithCell,
 
@@ -227,7 +252,7 @@ export function useGameState(): GameStateReturn {
     joinGameToPlay,
     joinGameToWatch,
     selectSide,
-    clickCell,
-    cellClicked,
+    clickCellToMove,
+    cellClickedWithMove,
   };
 }

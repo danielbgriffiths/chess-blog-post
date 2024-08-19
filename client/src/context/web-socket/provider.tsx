@@ -24,12 +24,8 @@ export enum EventName {
   LeavingGame = "leaving-game",
   OnlineRoomsUpdate = "online-rooms-update",
   OnlineUsersUpdate = "online-users-update",
-  ClickCell = "click-cell",
-  MouseEnterCell = "mouse-enter-cell",
-  MouseLeaveCell = "mouse-leave-cell",
-  CellClicked = "cell-clicked",
-  MouseEnteredCell = "mouse-entered-cell",
-  MouseLeftCell = "mouse-left-cell",
+  ClickCellToMove = "click-cell-to-move",
+  CellClickedWithMove = "cell-clicked-with-move",
   SelectSide = "select-side",
   RoomDataUpdate = "room-data-update",
 }
@@ -77,9 +73,7 @@ export interface WebSocketReturn {
   joinGameToPlay: (roomUid: string, response: StatusCallback) => void;
   createGame: (response: StatusCallback) => void;
   leaveGame: (response: StatusCallback) => void;
-  mouseLeaveCell: (cellUid: string, response: StatusCallback) => void;
-  mouseEnterCell: (cellUid: string, response: StatusCallback) => void;
-  clickCell: (cellUid: string, response: StatusCallback) => void;
+  clickCellToMove: (nextGameState: GameState, response: StatusCallback) => void;
   selectSide: (selectedSide: Side, callback: StatusCallback) => void;
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
@@ -170,16 +164,11 @@ export function WebSocketProvider({ children }) {
     socket.emit(EventName.LeaveGame, callback);
   }
 
-  function mouseEnterCell(cellUid: string, callback: StatusCallback): void {
-    socket.emit(EventName.MouseEnterCell, cellUid, callback);
-  }
-
-  function mouseLeaveCell(cellUid: string, callback: StatusCallback): void {
-    socket.emit(EventName.MouseLeaveCell, cellUid, callback);
-  }
-
-  function clickCell(cellUid: string, callback: StatusCallback): void {
-    socket.emit(EventName.ClickCell, cellUid, callback);
+  function clickCellToMove(
+    nextGameState: GameState,
+    callback: StatusCallback,
+  ): void {
+    socket.emit(EventName.ClickCellToMove, nextGameState, callback);
   }
 
   function selectSide(selectedSide: Side, callback: StatusCallback): void {
@@ -211,9 +200,7 @@ export function WebSocketProvider({ children }) {
         joinGameToPlay,
         createGame,
         leaveGame,
-        mouseEnterCell,
-        mouseLeaveCell,
-        clickCell,
+        clickCellToMove,
         selectSide,
 
         listen,

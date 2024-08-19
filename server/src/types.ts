@@ -12,9 +12,8 @@ export enum EventName {
   OnlineUsersUpdate = "online-users-update",
   RoomDataUpdate = "room-data-update",
   SelectSide = "select-side",
-  ClickCell = "click-cell",
-  MouseEnterCell = "mouse-enter-cell",
-  MouseLeaveCell = "mouse-leave-cell",
+  ClickCellToMove = "click-cell-to-move",
+  CellClickedWithMove = "cell-clicked-with-move",
 }
 
 export enum UserStatus {
@@ -72,17 +71,4 @@ export interface OnlineRoom {
   playerUids: Set<string>;
   watcherUids: Set<string>;
   gameState: GameState;
-}
-
-export type OnlineUserMap = Map<string, OnlineUser>;
-
-export type OnlineRoomMap = Map<string, OnlineRoom>;
-
-export interface CompositionsReturn {
-  connection: () => void;
-  joinGameToWatch: (roomUid: string, callback: unknown) => void;
-  joinGameToPlay: (roomUid: string, callback: unknown) => void;
-  createGame: (callback: unknown) => void;
-  leaveGame: (roomUid: string, callback: unknown) => void;
-  disconnect: () => void;
 }

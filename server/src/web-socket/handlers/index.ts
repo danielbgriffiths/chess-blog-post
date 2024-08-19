@@ -2,7 +2,7 @@ import { Server, Socket } from "socket.io";
 
 import { OnlineUsers } from "../../models/online-user";
 import { OnlineRooms } from "../../models/online-room";
-import { EventName, Side } from "../../types";
+import { EventName, Side, GameState } from "../../types";
 
 export interface HandlersReturn {
   connection(): void;
@@ -12,9 +12,7 @@ export interface HandlersReturn {
   leaveGame(callback: Function): void;
   disconnect(): void;
   selectSide(side: Side, callback: Function): void;
-  clickCell(cellUid: string, callback: Function): void;
-  mouseEnterCell(cellUid: string, callback: Function): void;
-  mouseLeaveCell(cellUid: string, callback: Function): void;
+  clickCellToMove(nextGameState: GameState, callback: Function): void;
 }
 
 export function handlers(
@@ -98,7 +96,6 @@ export function handlers(
     onlineUsers.get(socket.id).addRoom(newGameRoomUid);
     onlineUsers.get(socket.id).updateStatusPending();
 
-    // TODO will this cause a race condition with the way we handle room state and navigation on front-end
     emitState(newGameRoomUid);
 
     callback({
@@ -160,28 +157,24 @@ export function handlers(
     callback({ status: "success" });
   }
 
-  function clickCell(
-    move: { to: string; from: string },
-    callback: Function,
-  ): void {
+  function clickCellToMove(nextGameState: GameState, callback: Function): void {
     const roomUid = onlineUsers.get(socket.id).getRoomUid();
 
     if (!roomUid) {
       return callback({ status: "failed" });
     }
 
-    onlineRooms.get(roomUid).updateGameState(socket.id, move);
+    onlineRooms.get(roomUid).updateGameState(nextGameState);
 
     emitState(roomUid);
 
-    io.to(roomUid).emit("cell-clicked", move);
+    io.to(roomUid).emit(
+      EventName.CellClickedWithMove,
+      onlineRooms.get(roomUid).gameState,
+    );
 
     callback({ status: "success" });
   }
-
-  function mouseEnterCell(cellUid: string, callback: Function): void {}
-
-  function mouseLeaveCell(cellUid: string, callback: Function): void {}
 
   function disconnect(): void {}
 
@@ -193,8 +186,6 @@ export function handlers(
     leaveGame,
     disconnect,
     selectSide,
-    clickCell,
-    mouseEnterCell,
-    mouseLeaveCell,
+    clickCellToMove,
   };
 }

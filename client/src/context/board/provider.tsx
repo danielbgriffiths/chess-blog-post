@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { createRef, useRef, useState } from "react";
 
 import { BoardContext } from "./create-context";
-import { Piece, Side, useGameState } from "../../hooks/use-game-state";
+import {
+  GameState,
+  GameStatus,
+  HistoryRecord,
+  Piece,
+  Side,
+  useGameState,
+} from "../../hooks/use-game-state";
+import { useWebSocket } from "../web-socket/use-context.ts";
+import { getValidMoves } from "../../utils/get-valid-moves.ts";
+import { toast } from "react-toastify";
 
 export interface CellData {
   piece?: Piece;
@@ -75,46 +85,273 @@ for (let r = 0; r < board.length; r++) {
 
 export function BoardProvider({ children }) {
   const gameState = useGameState();
+  const { userUid } = useWebSocket();
+
+  const moveFailRollback = useRef<Cells>();
 
   const [cells, setCells] = useState<Cells>(initialCells);
-  const [lastHoveredCell, setLastHoveredCell] = useState<CellData | undefined>(
+  const [hoveredCell, setHoveredCell] = useState<CellData | undefined>(
     undefined,
   );
-  const [lastSelectedCell, setLastSelectedCell] = useState<
-    CellData | undefined
-  >(undefined);
-  const [lastValidMoveCells, lastValidMovesCell] = useState<
-    CellData | undefined
-  >(undefined);
+  const [selectedCell, setSelectedCell] = useState<CellData | undefined>(
+    undefined,
+  );
+  const [validMoveCells, setValidMoveCells] = useState<CellData[]>([]);
+
+  function isPlayersCell(cellUid: string, userUid: string): boolean {
+    return cells.get(cellUid)!.player === Side.Black
+      ? gameState.blackUid === userUid
+      : gameState.whiteUid === userUid;
+  }
+
+  function isCellAValidMove(cellUid: string): boolean {
+    return !!(validMoveCells || []).filter((cell) => cell.uid === cellUid)
+      .length;
+  }
 
   function onMouseEnterCell(uid: string): void {
-    //
+    if (!gameState.canInteractWithCell(uid)) return;
+    if (!selectedCell && !isPlayersCell(uid, userUid)) return;
+    if (selectedCell && !isCellAValidMove(uid)) return;
+
+    setCells((prevCells) => {
+      const nextCells = new Map(prevCells);
+
+      nextCells.set(uid, { ...nextCells.get(uid)!, isHovered: true });
+
+      let validMoveUids!: Set<string>;
+      if (!selectedCell) {
+        validMoveUids = getValidMoves(
+          nextCells.get(uid)!,
+          gameState.turn,
+          nextCells,
+        );
+        for (const [cellUid, cellData] of nextCells.entries()) {
+          nextCells.set(cellUid, {
+            ...cellData,
+            isValidMove: validMoveUids.has(cellUid),
+          });
+        }
+      }
+
+      setHoveredCell(nextCells.get(uid)!);
+
+      if (!selectedCell) {
+        setValidMoveCells(() => {
+          return Array.from(validMoveUids).map(
+            (validMoveUid) => nextCells.get(validMoveUid)!,
+          );
+        });
+      }
+
+      return nextCells;
+    });
   }
 
   function onMouseLeaveCell(uid: string): void {
-    //
+    if (!gameState.canInteractWithCell(uid)) return;
+
+    setCells((prevCells) => {
+      const nextCells = new Map(prevCells);
+
+      nextCells.set(uid, {
+        ...nextCells.get(uid)!,
+        isHovered: false,
+      });
+
+      if (!selectedCell) {
+        for (const [cellUid, cellData] of nextCells.entries()) {
+          nextCells.set(cellUid, {
+            ...cellData,
+            isValidMove: false,
+          });
+        }
+      }
+
+      setHoveredCell(undefined);
+
+      if (!selectedCell) {
+        setValidMoveCells([]);
+      }
+
+      return nextCells;
+    });
+  }
+
+  function handleFreshClickSelection(uid: string): void {
+    setCells((prevCells) => {
+      const nextCells = new Map(prevCells);
+
+      nextCells.set(uid, {
+        ...nextCells.get(uid)!,
+        isSelected: true,
+      });
+
+      const validMoveUids = getValidMoves(
+        nextCells.get(uid)!,
+        gameState.turn,
+        nextCells,
+      );
+      for (const [cellUid, cellData] of nextCells.entries()) {
+        nextCells.set(cellUid, {
+          ...cellData,
+          isValidMove: validMoveUids.has(cellUid),
+        });
+      }
+
+      setHoveredCell(undefined);
+      setSelectedCell(
+        nextCells.get(uid)!.isSelected ? nextCells.get(uid) : undefined,
+      );
+      setValidMoveCells(() => {
+        return Array.from(validMoveUids).map(
+          (validMoveUid) => nextCells.get(validMoveUid)!,
+        );
+      });
+
+      return nextCells;
+    });
+  }
+
+  function handleBacktrackClickSelection(uid: string): void {
+    setCells((prevCells) => {
+      const nextCells = new Map(prevCells);
+
+      nextCells.set(uid, {
+        ...nextCells.get(uid)!,
+        isSelected: false,
+      });
+
+      for (const [cellUid, cellData] of nextCells.entries()) {
+        nextCells.set(cellUid, {
+          ...cellData,
+          isValidMove: false,
+        });
+      }
+
+      setHoveredCell(undefined);
+      setSelectedCell(
+        nextCells.get(uid)!.isSelected ? nextCells.get(uid) : undefined,
+      );
+      setValidMoveCells([]);
+
+      return nextCells;
+    });
+  }
+
+  function handleClickToMove(uid: string): void {
+    const nextGameState: GameState = {
+      white: gameState.whiteUid,
+      black: gameState.blackUid,
+      turn: gameState.turn === Side.White ? Side.Black : Side.White,
+      status: GameStatus.InProgress,
+      whiteCaptures: gameState.whiteCaptures,
+      blackCaptures: gameState.blackCaptures,
+      history: gameState.history,
+    };
+
+    moveFailRollback.current = cells;
+
+    setCells((prevCells) => {
+      let removedPiece!: Piece;
+
+      const nextCells = new Map(prevCells);
+      const clickedCell = nextCells.get(uid)!;
+
+      if (clickedCell.player) {
+        removedPiece = clickedCell.piece!;
+      }
+
+      const selectedCellData = nextCells.get(selectedCell!.uid!)!;
+
+      clickedCell.player = selectedCellData.player;
+      clickedCell.piece = selectedCellData.piece;
+      clickedCell.isSelected = false;
+      clickedCell.state = "dirty";
+      if (
+        clickedCell.piece === Piece.Pawn &&
+        (parseInt(clickedCell.uid.split("-")[0]) === 0 ||
+          parseInt(clickedCell.uid.split("-")[0]) === 7)
+      ) {
+        clickedCell.piece = Piece.Queen;
+        clickedCell.state = "queened";
+      }
+
+      selectedCellData.player = undefined;
+      selectedCellData.piece = undefined;
+      selectedCellData.isSelected = false;
+      selectedCellData.state = "left";
+
+      nextCells.set(uid, clickedCell);
+      nextCells.set(selectedCell!.uid, selectedCellData);
+
+      for (const [cellUid, cellData] of nextCells.entries()) {
+        nextCells.set(cellUid, {
+          ...cellData,
+          isValidMove: false,
+        });
+      }
+
+      setHoveredCell(undefined);
+      setSelectedCell(undefined);
+      setValidMoveCells([]);
+
+      const nextHistoryItem: HistoryRecord = {
+        timestamp: new Date().toISOString(),
+        piece: selectedCell!.piece!,
+        from: selectedCell!.uid,
+        to: clickedCell.uid,
+        turn: gameState.turn,
+        capture: removedPiece,
+        fromCheck: false,
+        toCheck: false,
+        toCheckMate: false,
+      };
+
+      nextGameState.history = [nextHistoryItem, ...nextGameState.history];
+
+      if (gameState.turn === Side.White) {
+        nextGameState.whiteCaptures.push(nextHistoryItem);
+      } else {
+        nextGameState.blackCaptures.push(nextHistoryItem);
+      }
+
+      return nextCells;
+    });
+
+    gameState.clickCellToMove(
+      nextGameState,
+      (response) => {
+        toast("Moved Piece");
+      },
+      (response) => {
+        toast.error("Failed to Move Piece");
+        setCells(() => moveFailRollback.current!);
+      },
+    );
   }
 
   function onClickCell(uid: string): void {
     if (!gameState.canInteractWithCell(uid)) return;
+    if (!selectedCell && !isPlayersCell(uid, userUid)) return;
+    if (selectedCell && !isCellAValidMove(uid) && uid !== selectedCell.uid)
+      return;
 
-    if (!!lastSelectedCell?.uid && lastSelectedCell?.uid !== uid) {
-      gameState.clickCell(
-        { to: uid, from: lastSelectedCell?.uid },
-        (response) => {
-          // Handle change to board state based on this new gameState
-        },
-        (response) => {
-          // Handle change to board state based on this new gameState
-        },
-      );
-    } else {
-      // Update selected cell
+    if (!selectedCell) {
+      return handleFreshClickSelection(uid);
     }
+
+    if (selectedCell.uid === uid) {
+      return handleBacktrackClickSelection(uid);
+    }
+
+    handleClickToMove(uid);
   }
 
-  gameState.cellClicked((payload) => {
-    // Handle board change state based on this new game state
+  gameState.cellClickedWithMove((nextGameState: GameState) => {
+    setCells((prevCells) => {
+      return prevCells;
+    });
   });
 
   return (

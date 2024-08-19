@@ -1,9 +1,4 @@
-import {
-  GameState,
-  OnlineRoom as IOnlineRoom,
-  OnlineRoomMap,
-  Side,
-} from "../types";
+import { GameState, OnlineRoom as IOnlineRoom, Side } from "../types";
 
 export class OnlineRoom implements IOnlineRoom {
   uid!: string;
@@ -79,6 +74,10 @@ export class OnlineRoom implements IOnlineRoom {
 
   public updateSide(userUid: string, side: Side): void {
     this.gameState[side] = userUid;
+  }
+
+  public updateGameState(nextGameState: GameState): void {
+    this.gameState = nextGameState;
   }
 
   public toSummarySocket(): Pick<

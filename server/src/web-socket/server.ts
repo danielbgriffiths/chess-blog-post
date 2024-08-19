@@ -25,9 +25,7 @@ export function createWebSocketServer(
       leaveGame,
       disconnect,
       selectSide,
-      clickCell,
-      mouseEnterCell,
-      mouseLeaveCell,
+      clickCellToMove,
     } = handlers(io, socket, onlineUsers, onlineRooms);
 
     connection();
@@ -38,9 +36,7 @@ export function createWebSocketServer(
       { eventName: EventName.CreateGame, handler: createGame },
       { eventName: EventName.LeaveGame, handler: leaveGame },
       { eventName: EventName.SelectSide, handler: selectSide },
-      { eventName: EventName.ClickCell, handler: clickCell },
-      { eventName: EventName.MouseEnterCell, handler: mouseEnterCell },
-      { eventName: EventName.MouseLeaveCell, handler: mouseLeaveCell },
+      { eventName: EventName.ClickCellToMove, handler: clickCellToMove },
       { eventName: DISCONNECT, handler: disconnect },
     ]) {
       socket.on(listener.eventName, listener.handler);
