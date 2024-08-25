@@ -1,0 +1,29 @@
+{
+  "name": "chess-blog-post",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "common": "pnpm --filter @chess-blog-post/common",
+    "api": "pnpm --filter @chess-blog-post/server",
+    "client": "pnpm --filter @chess-blog-post/client",
+    "dev:start:common": "pnpm common dev:start",
+    "prod:build:common": "pnpm common prod:build",
+    "dev:start:server": "pnpm api dev:start",
+    "dev:start:client": "pnpm client dev:start",
+    "prod:build:server": "pnpm api prod:build",
+    "prod:build:client": "pnpm client prod:build",
+    "prod:start:server": "pnpm api prod:start",
+    "dev:app": "concurrently \"pnpm dev:start:common\" \"pnpm dev:start:server\" \"pnpm dev:start:client\"",
+    "prod:app": "pnpm prod:build:common && pnpm prod:build:client && pnpm prod:build:server && pnpm prod:start:server"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
