@@ -1,3 +1,1 @@
-export const testFn = () => "hi";
-
-testFn();
+export * from "./types";

@@ -1,4 +1,8 @@
-import { GameState, OnlineRoom as IOnlineRoom, Side } from "../types";
+import {
+  GameState,
+  OnlineRoom as IOnlineRoom,
+  Side,
+} from "@chess-blog-post/common";
 
 export class OnlineRoom implements IOnlineRoom {
   uid!: string;
@@ -23,7 +27,7 @@ export class OnlineRoom implements IOnlineRoom {
       whiteCaptures: [],
       blackCaptures: [],
       history: [],
-    };
+    } as GameState;
   }
 
   public addWatcherToGame(userUid: string): boolean {

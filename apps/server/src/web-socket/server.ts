@@ -1,20 +1,18 @@
 import { Server } from "socket.io";
+import { Server as HTTPServer } from "http";
+import { EventName } from "@chess-blog-post/common";
 
 import { CONNECTION, DISCONNECT } from "../constants";
-import { EventName } from "../types";
 import { OnlineUsers } from "../models/online-user";
 import { OnlineRooms } from "../models/online-room";
 import { handlers } from "./handlers";
 
 export function createWebSocketServer(
+  httpServer: HTTPServer,
   onlineUsers: OnlineUsers,
   onlineRooms: OnlineRooms,
 ): void {
-  const io: Server = require("socket.io")(4000, {
-    cors: {
-      origin: "*",
-    },
-  });
+  const io = new Server(httpServer);
 
   io.on(CONNECTION, (socket): void => {
     const {

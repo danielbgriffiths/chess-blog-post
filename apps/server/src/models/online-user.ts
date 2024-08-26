@@ -1,4 +1,4 @@
-import { OnlineUser as IOnlineUser, UserStatus } from "../types";
+import { OnlineUser as IOnlineUser, UserStatus } from "@chess-blog-post/common";
 
 export class OnlineUser implements IOnlineUser {
   uid!: string;
