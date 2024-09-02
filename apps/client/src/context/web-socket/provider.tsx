@@ -51,12 +51,18 @@ export interface OnlineRoom {
   uid: string;
   name: string;
   size: number;
+  createdAt?: string;
 }
 
 export type RoomData = OnlineRoom & {
   gameState: GameState;
   playerUids: Set<string>;
   watcherUids: Set<string>;
+};
+
+export type RawRoomData = Omit<RoomData, "playerUids" | "watcherUids"> & {
+  playerUids: string[];
+  watcherUids: string[];
 };
 
 export type OnlineRoomMap = Map<string, OnlineRoom>;
@@ -78,10 +84,10 @@ export interface WebSocketReturn {
 
   listen: (event: EventName, handler: (...args: unknown[]) => void) => void;
 
-  setRoom: (nextRoom?: RoomData) => void;
+  onRoomDataUpdate: (nextRoom?: RawRoomData) => void;
 }
 
-const SOCKET_SERVER_URL = "http://localhost:4000";
+const SOCKET_SERVER_URL = "http://localhost:3000";
 
 const socket = io(SOCKET_SERVER_URL);
 
@@ -104,14 +110,6 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
 
     function onOnlineUsersUpdate(nextOnlineUsers: OnlineUserMap): void {
       setOnlineUsers(new Map(nextOnlineUsers));
-    }
-
-    function onRoomDataUpdate(nextRoomData: RoomData): void {
-      setRoom({
-        ...nextRoomData,
-        playerUids: new Set(nextRoomData.playerUids),
-        watcherUids: new Set(nextRoomData.watcherUids),
-      });
     }
 
     function onPlayerJoinedGame(playerUid: string): void {
@@ -147,6 +145,18 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
     if (!userUid) return;
     toast(`Connected to server as ${userUid}`);
   }, [userUid]);
+
+  function onRoomDataUpdate(nextRoomData: RawRoomData): void {
+    setRoom({
+      uid: nextRoomData.uid,
+      name: nextRoomData.name,
+      size: nextRoomData.size,
+      createdAt: nextRoomData.createdAt,
+      gameState: nextRoomData.gameState,
+      playerUids: new Set(nextRoomData.playerUids),
+      watcherUids: new Set(nextRoomData.watcherUids),
+    });
+  }
 
   function joinGameToWatch(roomUid: string, callback: StatusCallback): void {
     socket.emit(EventName.JoinGameToWatch, roomUid, callback);
@@ -205,7 +215,7 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
 
         listen,
 
-        setRoom,
+        onRoomDataUpdate,
       }}
     >
       {children}

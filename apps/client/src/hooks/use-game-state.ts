@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { useWebSocket } from "../context/web-socket/use-context";
 import {
   EventName,
+  RawRoomData,
   RoomData,
   StatusCallback,
 } from "../context/web-socket/provider";
@@ -103,10 +104,6 @@ export function useGameState(): GameStateReturn {
     return websocket.room?.gameState.turn!;
   }, [websocket.room]);
 
-  const turnUid = useMemo<string | undefined>(() => {
-    return turn === Side.White ? whiteUid : blackUid;
-  }, [turn]);
-
   const whiteUid = useMemo<string | undefined>(() => {
     return websocket.room?.gameState.white;
   }, [websocket.room]);
@@ -114,6 +111,10 @@ export function useGameState(): GameStateReturn {
   const blackUid = useMemo<string | undefined>(() => {
     return websocket.room?.gameState.black;
   }, [websocket.room]);
+
+  const turnUid = useMemo<string | undefined>(() => {
+    return turn === Side.White ? whiteUid : blackUid;
+  }, [turn]);
 
   const status = useMemo<GameStatus>(() => {
     return websocket.room?.gameState.status!;
@@ -151,7 +152,7 @@ export function useGameState(): GameStateReturn {
     websocket.createGame((response) => {
       switch (response.status) {
         case "success":
-          websocket.setRoom(response.room as RoomData);
+          websocket.onRoomDataUpdate(response.room as RawRoomData);
           successCallback(response);
           break;
         default:
@@ -169,7 +170,7 @@ export function useGameState(): GameStateReturn {
     websocket.joinGameToPlay(roomUid, (response) => {
       switch (response.status) {
         case "success":
-          websocket.setRoom(response.room as RoomData);
+          websocket.onRoomDataUpdate(response.room as RawRoomData);
           successCallback(response);
           break;
         default:
@@ -187,7 +188,7 @@ export function useGameState(): GameStateReturn {
     websocket.joinGameToWatch(roomUid, (response) => {
       switch (response.status) {
         case "success":
-          websocket.setRoom(response.room as RoomData);
+          websocket.onRoomDataUpdate(response.room as RawRoomData);
           successCallback(response);
           break;
         default:

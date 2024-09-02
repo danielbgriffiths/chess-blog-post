@@ -53,7 +53,7 @@ export interface GameState {
   history: HistoryRecord[];
 }
 
-export type OnlineUser = {
+export interface OnlineUser {
   uid: string;
   username: string;
   status: UserStatus;
@@ -61,7 +61,7 @@ export type OnlineUser = {
   wins: number;
   losses: number;
   roomUid?: string;
-};
+}
 
 export interface OnlineRoom {
   uid: string;

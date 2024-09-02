@@ -21,14 +21,14 @@ export function GameSpace() {
     toast(`Leaving ${websocket.room!.uid} game`);
     websocket.leaveGame((response): void => {
       if (response.status !== "success") return;
-      websocket.setRoom(undefined);
+      websocket.onRoomDataUpdate(undefined);
       navigate("/");
     });
   }
 
   websocket.listen(EventName.PlayerLeftGame, (watcherUids): void => {
     if (!(watcherUids as string[]).includes(websocket.userUid)) return;
-    websocket.setRoom(undefined);
+    websocket.onRoomDataUpdate(undefined);
     navigate("/");
   });
 

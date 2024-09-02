@@ -134,11 +134,8 @@ export class OnlineRooms {
     return this.data.has(uid);
   }
 
-  public set(uid: string, data: Partial<OnlineRoom>): Map<string, OnlineRoom> {
-    return this.data.set(uid, {
-      ...this.data.get(uid)!,
-      ...data,
-    } as OnlineRoom);
+  public set(uid: string, data: OnlineRoom): Map<string, OnlineRoom> {
+    return this.data.set(uid, data);
   }
 
   public toSocket(): any {

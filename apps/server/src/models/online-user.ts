@@ -19,7 +19,7 @@ export class OnlineUser implements IOnlineUser {
     this.roomUid = undefined;
   }
 
-  public isInRoom(): boolean {
+  isInRoom(): boolean {
     return !!this.roomUid;
   }
 
@@ -73,11 +73,8 @@ export class OnlineUsers {
     return this.data.get(uid)!;
   }
 
-  public set(uid: string, data: Partial<OnlineUser>): void {
-    this.data.set(uid, {
-      ...(this.data.get(uid) || {}),
-      ...data,
-    } as OnlineUser);
+  public set(uid: string, data: OnlineUser): void {
+    this.data.set(uid, data);
   }
 
   public toSocket(): any {

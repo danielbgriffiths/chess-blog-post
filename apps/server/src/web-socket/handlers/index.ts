@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
-import type { EventName, Side, GameState } from "@chess-blog-post/common";
+import { EventName, Side, GameState } from "@chess-blog-post/common";
 
-import { OnlineUsers } from "../../models/online-user";
+import { OnlineUsers, OnlineUser } from "../../models/online-user";
 import { OnlineRooms } from "../../models/online-room";
 
 export interface HandlersReturn {
