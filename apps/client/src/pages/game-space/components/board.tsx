@@ -1,8 +1,9 @@
 import { Fragment, memo } from "react";
+import { GameStatus } from "@chess-blog-post/common";
 
 import { BoardOverlay } from "./board-overlay";
 import { Cell } from "./cell";
-import { GameStatus, useGameState } from "../../../hooks/use-game-state";
+import { useGameState } from "../../../hooks/use-game-state";
 import { useBoard } from "../../../context/board/use-context";
 
 export const Board = memo(function Component() {

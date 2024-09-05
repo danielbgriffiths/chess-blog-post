@@ -2,6 +2,7 @@ import {
   GameState,
   OnlineRoom as IOnlineRoom,
   Side,
+  GameStatus,
 } from "@chess-blog-post/common";
 
 export class OnlineRoom implements IOnlineRoom {
@@ -24,6 +25,7 @@ export class OnlineRoom implements IOnlineRoom {
       white: undefined,
       black: undefined,
       turn: Side.White,
+      status: GameStatus.Setup,
       whiteCaptures: [],
       blackCaptures: [],
       history: [],

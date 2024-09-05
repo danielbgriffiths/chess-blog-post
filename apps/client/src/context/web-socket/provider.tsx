@@ -1,69 +1,17 @@
 import { PropsWithChildren, useCallback, useEffect, useState } from "react";
 import io from "socket.io-client";
 import { toast } from "react-toastify";
+import {
+  Side,
+  GameState,
+  StatusCallback,
+  EventName,
+  OnlineUser,
+  OnlineRoom,
+  RawRoomData,
+} from "@chess-blog-post/common";
 
 import { WebSocketContext } from "./create-context";
-import { GameState, Side } from "../../hooks/use-game-state";
-
-export interface StatusCallbackPayload {
-  status: string;
-  [key: string]: unknown;
-}
-
-export type StatusCallback = (response: StatusCallbackPayload) => void;
-
-export enum EventName {
-  Connected = "connected",
-  ConnectionWelcomeMessage = "connection-welcome-message",
-  JoinGameToWatch = "join-game-to-watch",
-  JoinGameToPlay = "join-game-to-play",
-  CreateGame = "create-game",
-  LeaveGame = "leave-game",
-  PlayerLeftGame = "player-left-game",
-  PlayerJoinedGame = "player-joined-game",
-  LeavingGame = "leaving-game",
-  OnlineRoomsUpdate = "online-rooms-update",
-  OnlineUsersUpdate = "online-users-update",
-  ClickCellToMove = "click-cell-to-move",
-  CellClickedWithMove = "cell-clicked-with-move",
-  SelectSide = "select-side",
-  RoomDataUpdate = "room-data-update",
-}
-
-export enum UserStatus {
-  Waiting,
-  Pending,
-  PairedPlayer,
-  PairedWatcher,
-}
-
-export type OnlineUser = {
-  uid: string;
-  username: string;
-  status: UserStatus;
-  createdAt: string;
-  wins: number;
-  losses: number;
-  roomUid?: string;
-};
-
-export interface OnlineRoom {
-  uid: string;
-  name: string;
-  size: number;
-  createdAt?: string;
-}
-
-export type RoomData = OnlineRoom & {
-  gameState: GameState;
-  playerUids: Set<string>;
-  watcherUids: Set<string>;
-};
-
-export type RawRoomData = Omit<RoomData, "playerUids" | "watcherUids"> & {
-  playerUids: string[];
-  watcherUids: string[];
-};
 
 export type OnlineRoomMap = Map<string, OnlineRoom>;
 
@@ -71,7 +19,7 @@ export type OnlineUserMap = Map<string, OnlineUser>;
 
 export interface WebSocketReturn {
   userUid: string;
-  room?: RoomData;
+  room?: OnlineRoom;
   onlineRooms: OnlineRoomMap;
   onlineUsers: OnlineUserMap;
 
@@ -95,7 +43,7 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
   const [userUid, setUserUid] = useState<string>(
     undefined as unknown as string,
   );
-  const [room, setRoom] = useState<RoomData | undefined>(undefined);
+  const [room, setRoom] = useState<OnlineRoom | undefined>(undefined);
   const [onlineRooms, setOnlineRooms] = useState<OnlineRoomMap>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<OnlineUserMap>(new Map());
 
@@ -146,15 +94,19 @@ export function WebSocketProvider({ children }: PropsWithChildren) {
     toast(`Connected to server as ${userUid}`);
   }, [userUid]);
 
-  function onRoomDataUpdate(nextRoomData: RawRoomData): void {
-    setRoom({
-      uid: nextRoomData.uid,
-      name: nextRoomData.name,
-      size: nextRoomData.size,
-      createdAt: nextRoomData.createdAt,
-      gameState: nextRoomData.gameState,
-      playerUids: new Set(nextRoomData.playerUids),
-      watcherUids: new Set(nextRoomData.watcherUids),
+  function onRoomDataUpdate(nextRoomData?: RawRoomData): void {
+    setRoom(() => {
+      if (!nextRoomData) return undefined;
+
+      return {
+        uid: nextRoomData.uid,
+        name: nextRoomData.name,
+        size: nextRoomData.size,
+        createdAt: nextRoomData.createdAt,
+        gameState: nextRoomData.gameState,
+        playerUids: new Set(nextRoomData.playerUids),
+        watcherUids: new Set(nextRoomData.watcherUids),
+      };
     });
   }
 

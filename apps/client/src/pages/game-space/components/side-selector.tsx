@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { Side } from "@chess-blog-post/common";
 
-import { Side, useGameState } from "../../../hooks/use-game-state";
+import { useGameState } from "../../../hooks/use-game-state";
 
 export function SideSelector() {
   const gameState = useGameState();
@@ -55,7 +56,7 @@ export function SideSelector() {
         <span
           onClick={onSelectWhite}
           className={[
-            `inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium bg-${whiteColor}-100 text-${whiteColor}-600`,
+            `inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium relative z-10 bg-${whiteColor}-100 text-${whiteColor}-600`,
             !gameState.isWatcher && !gameState.isOpponentWhite
               ? "cursor-pointer"
               : "cursor-default",

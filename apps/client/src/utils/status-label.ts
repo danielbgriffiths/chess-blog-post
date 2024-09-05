@@ -1,4 +1,4 @@
-import { UserStatus } from "../context/web-socket/provider";
+import { UserStatus } from "@chess-blog-post/common";
 
 export const getStatusLabel = (userStatus: UserStatus): string => {
   switch (userStatus) {

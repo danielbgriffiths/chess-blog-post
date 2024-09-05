@@ -38,16 +38,30 @@ export enum Side {
 }
 
 export interface HistoryRecord {
+  timestamp: string;
   piece: Piece;
   from: string;
   to: string;
   turn: Side;
+  capture?: Piece;
+  fromCheck: boolean;
+  toCheck: boolean;
+  toCheckMate: boolean;
+}
+
+export enum GameStatus {
+  Setup,
+  Ready,
+  InProgress,
+  Paused,
+  Ended,
 }
 
 export interface GameState {
   white?: string;
   black?: string;
   turn?: Side;
+  status: GameStatus;
   whiteCaptures: Piece[];
   blackCaptures: Piece[];
   history: HistoryRecord[];
@@ -72,3 +86,20 @@ export interface OnlineRoom {
   watcherUids: Set<string>;
   gameState: GameState;
 }
+
+export type OnlineRoomOverview = Pick<
+  OnlineRoom,
+  "uid" | "name" | "size" | "createdAt"
+>;
+
+export type RawRoomData = Omit<OnlineRoom, "playerUids" | "watcherUids"> & {
+  playerUids: string[];
+  watcherUids: string[];
+};
+
+export interface StatusCallbackPayload {
+  status: string;
+  [key: string]: unknown;
+}
+
+export type StatusCallback = (response: StatusCallbackPayload) => void;

@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { EventName, Side, GameState } from "@chess-blog-post/common";
 
-import { OnlineUsers, OnlineUser } from "../../models/online-user";
+import { OnlineUsers } from "../../models/online-user";
 import { OnlineRooms } from "../../models/online-room";
 
 export interface HandlersReturn {
@@ -105,7 +105,13 @@ export function handlers(
   }
 
   function leaveGame(callback: Function): void {
-    const roomUid = onlineUsers.get(socket.id).getRoomUid()!;
+    const roomUid = onlineUsers.get(socket.id).getRoomUid();
+
+    if (!roomUid) {
+      callback({ status: "success" });
+      return;
+    }
+
     const isPlayer = onlineRooms.get(roomUid).isPlayer(socket.id);
     const isWatcher = onlineRooms.get(roomUid).isWatcher(socket.id);
 
@@ -176,7 +182,15 @@ export function handlers(
     callback({ status: "success" });
   }
 
-  function disconnect(): void {}
+  function disconnect(): void {
+    leaveGame((args: { status: string }): void => {
+      if (args.status === "success") {
+        onlineUsers.delete(socket.id);
+      }
+
+      emitState();
+    });
+  }
 
   return {
     connection,

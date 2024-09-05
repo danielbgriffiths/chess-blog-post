@@ -1,56 +1,16 @@
 import { useCallback, useMemo } from "react";
-
-import { useWebSocket } from "../context/web-socket/use-context";
 import {
   EventName,
-  RawRoomData,
-  RoomData,
   StatusCallback,
-} from "../context/web-socket/provider";
+  GameStatus,
+  Side,
+  HistoryRecord,
+  GameState,
+  RawRoomData,
+  Piece,
+} from "@chess-blog-post/common";
 
-export enum Piece {
-  Queen,
-  King,
-  Bishop,
-  Knight,
-  Rook,
-  Pawn,
-}
-
-export enum GameStatus {
-  Setup,
-  Ready,
-  InProgress,
-  Paused,
-  Ended,
-}
-
-export enum Side {
-  White = "white",
-  Black = "black",
-}
-
-export interface HistoryRecord {
-  timestamp: string;
-  piece: Piece;
-  from: string;
-  to: string;
-  turn: Side;
-  capture?: Piece;
-  fromCheck: boolean;
-  toCheck: boolean;
-  toCheckMate: boolean;
-}
-
-export interface GameState {
-  white?: string;
-  black?: string;
-  turn: Side;
-  status: GameStatus;
-  whiteCaptures: HistoryRecord[];
-  blackCaptures: HistoryRecord[];
-  history: HistoryRecord[];
-}
+import { useWebSocket } from "../context/web-socket/use-context";
 
 export interface GameStateReturn {
   isWatcher: boolean;
@@ -64,8 +24,8 @@ export interface GameStateReturn {
   isUserWhite: boolean;
   isUserBlack: boolean;
   isUsersTurn: boolean;
-  whiteCaptures: HistoryRecord[];
-  blackCaptures: HistoryRecord[];
+  whiteCaptures: Piece[];
+  blackCaptures: Piece[];
   history: HistoryRecord[];
 
   canInteractWithCell: (cellUid: string) => boolean;
@@ -120,12 +80,12 @@ export function useGameState(): GameStateReturn {
     return websocket.room?.gameState.status!;
   }, [websocket.room]);
 
-  const whiteCaptures = useMemo<HistoryRecord[]>(
+  const whiteCaptures = useMemo<Piece[]>(
     () => websocket.room?.gameState.whiteCaptures ?? [],
     [websocket.room],
   );
 
-  const blackCaptures = useMemo<HistoryRecord[]>(
+  const blackCaptures = useMemo<Piece[]>(
     () => websocket.room?.gameState.blackCaptures ?? [],
     [websocket.room],
   );

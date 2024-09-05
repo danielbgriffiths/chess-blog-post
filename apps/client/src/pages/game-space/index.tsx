@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { EventName } from "@chess-blog-post/common";
 
 import { BoardProvider } from "../../context/board/provider";
 import { ChessGame } from "./components/chess-game";
 import { useWebSocket } from "../../context/web-socket/use-context";
-import { EventName } from "../../context/web-socket/provider";
 
 export function GameSpace() {
   const navigate = useNavigate();

@@ -1,4 +1,4 @@
-import { Side } from "../hooks/use-game-state";
+import { Side } from "@chess-blog-post/common";
 
 export function prettyPlayer(player: Side): string {
   switch (player) {

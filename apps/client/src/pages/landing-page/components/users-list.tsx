@@ -1,13 +1,10 @@
-import {
-  OnlineRoomMap,
-  OnlineUser,
-  UserStatus,
-} from "../../../context/web-socket/provider";
+import { OnlineUser, UserStatus, OnlineRoom } from "@chess-blog-post/common";
+
 import { getStatusColor, getStatusLabel } from "../../../utils";
 
 export function UsersList(props: {
   otherOnlineUsers: OnlineUser[];
-  onlineRooms: OnlineRoomMap;
+  onlineRooms: Map<string, OnlineRoom>;
   onClickPlayGame: (roomUid: string) => void;
   onClickWatchGame: (roomUid: string) => void;
 }) {

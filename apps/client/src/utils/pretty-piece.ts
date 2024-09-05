@@ -1,4 +1,4 @@
-import { Piece } from "../hooks/use-game-state";
+import { Piece } from "@chess-blog-post/common";
 
 export const prettyPiece = (piece: Piece): string => {
   switch (piece) {

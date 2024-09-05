@@ -1,4 +1,6 @@
-import { GameStatus, useGameState } from "../../../hooks/use-game-state";
+import { GameStatus } from "@chess-blog-post/common";
+
+import { useGameState } from "../../../hooks/use-game-state";
 import { SideSelector } from "./side-selector";
 
 export function BoardOverlay() {

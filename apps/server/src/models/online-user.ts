@@ -77,6 +77,10 @@ export class OnlineUsers {
     this.data.set(uid, data);
   }
 
+  public delete(uid: string): boolean {
+    return this.data.delete(uid);
+  }
+
   public toSocket(): any {
     return Array.from(this.data.entries());
   }

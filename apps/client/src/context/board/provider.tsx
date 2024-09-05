@@ -1,15 +1,15 @@
 import { PropsWithChildren, useRef, useState } from "react";
 import { toast } from "react-toastify";
-
-import { BoardContext } from "./create-context";
 import {
   GameState,
   GameStatus,
   HistoryRecord,
   Piece,
   Side,
-  useGameState,
-} from "../../hooks/use-game-state";
+} from "@chess-blog-post/common";
+
+import { BoardContext } from "./create-context";
+import { useGameState } from "../../hooks/use-game-state";
 import { useWebSocket } from "../web-socket/use-context";
 import { getValidMoves } from "../../utils/get-valid-moves";
 
@@ -311,9 +311,9 @@ export function BoardProvider({ children }: PropsWithChildren) {
       nextGameState.history = [nextHistoryItem, ...nextGameState.history];
 
       if (gameState.turn === Side.White) {
-        nextGameState.whiteCaptures.push(nextHistoryItem);
+        nextGameState.whiteCaptures.push(selectedCell!.piece!);
       } else {
-        nextGameState.blackCaptures.push(nextHistoryItem);
+        nextGameState.blackCaptures.push(selectedCell!.piece!);
       }
 
       return nextCells;

@@ -1,5 +1,6 @@
+import { Piece, Side } from "@chess-blog-post/common";
+
 import { CellData, Cells } from "../context/board/provider";
-import { Piece, Side } from "../hooks/use-game-state";
 
 function addMove(
   nextRowIndex: number,

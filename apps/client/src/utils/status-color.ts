@@ -1,4 +1,4 @@
-import { UserStatus } from "../context/web-socket/provider.tsx";
+import { UserStatus } from "@chess-blog-post/common";
 
 export const getStatusColor = (userStatus: UserStatus): string => {
   switch (userStatus) {

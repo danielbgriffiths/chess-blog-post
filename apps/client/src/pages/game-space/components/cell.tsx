@@ -1,8 +1,9 @@
 import { createRef, memo, useEffect } from "react";
+import { Side } from "@chess-blog-post/common";
 
 import { prettyPiece } from "../../../utils";
 import { useBoard } from "../../../context/board/use-context";
-import { useGameState, Side } from "../../../hooks/use-game-state";
+import { useGameState } from "../../../hooks/use-game-state";
 import { CellData } from "../../../context/board/provider";
 
 export const Cell = memo(function Component({

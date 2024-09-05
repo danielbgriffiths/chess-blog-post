@@ -1,4 +1,4 @@
-import { Piece } from "../hooks/use-game-state";
+import { Piece } from "@chess-blog-post/common";
 
 export function piecePoints(piece: Piece): number {
   if (piece === Piece.Pawn) return 1;
