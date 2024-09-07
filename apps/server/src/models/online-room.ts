@@ -79,7 +79,18 @@ export class OnlineRoom implements IOnlineRoom {
   }
 
   public updateSide(userUid: string, side: Side): void {
-    this.gameState[side] = userUid;
+    if (side === Side.White) {
+      this.gameState.white = userUid;
+      if (this.gameState.black === userUid) {
+        this.gameState.black = undefined as unknown as string;
+      }
+    } else if (side === Side.Black) {
+      this.gameState.black = userUid;
+      if (this.gameState.white === userUid) {
+        this.gameState.white = undefined as unknown as string;
+      }
+    }
+    console.log("this.gameState: ", this.gameState);
   }
 
   public updateGameState(nextGameState: GameState): void {

@@ -1,26 +1,48 @@
-import { useEffect, useState } from "react";
+import { memo, useMemo } from "react";
 import { toast } from "react-toastify";
 import { Side } from "@chess-blog-post/common";
 
 import { useGameState } from "../../../hooks/use-game-state";
 
-export function SideSelector() {
+const SideSelectorButton = memo(function Component({
+  isEnabled,
+  isUserSelected,
+  isOpponentSelected,
+  onClick,
+  label,
+}: {
+  isEnabled: boolean;
+  isUserSelected: boolean;
+  isOpponentSelected: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  const colorClass = useMemo(() => {
+    if (!isEnabled) return `bg-gray-100`;
+    if (isUserSelected) return "bg-blue-100";
+    if (isOpponentSelected) return "bg-red-100";
+    return "bg-gray-100";
+  }, [isUserSelected, isOpponentSelected, isEnabled]);
+
+  return (
+    <span
+      onClick={onClick}
+      className={[
+        `inline-flex items-center gap-x-1.5 rounded-full px-3 mx-2 py-2 text-sm font-medium`,
+        isEnabled && !isUserSelected ? "cursor-pointer" : "cursor-default",
+        colorClass,
+      ].join(" ")}
+    >
+      <svg className="h-1.5 w-1.5" viewBox="0 0 6 6" aria-hidden="true">
+        <circle cx="3" cy="3" r="3" />
+      </svg>
+      {label}
+    </span>
+  );
+});
+
+export const SideSelector = memo(function Component() {
   const gameState = useGameState();
-
-  const [whiteColor, setWhiteColor] = useState<string>("gray");
-  const [blackColor, setBlackColor] = useState<string>("gray");
-
-  useEffect(() => {
-    if (gameState.isUserWhite) {
-      setWhiteColor("blue");
-    } else if (gameState.isUserBlack) {
-      setBlackColor("blue");
-    } else if (gameState.isOpponentWhite) {
-      setWhiteColor("red");
-    } else if (gameState.isOpponentBlack) {
-      setBlackColor("red");
-    }
-  }, [gameState.whiteUid, gameState.blackUid]);
 
   function onSelectWhite(): void {
     if (
@@ -51,45 +73,28 @@ export function SideSelector() {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg bg-gray-200">
-      <div className="px-4 py-5 sm:p-6">
-        <span
+    <div className="overflow-hidden rounded-lg shadow-xl bg-gray-200 relative z-10 py-4">
+      <div className="px-4 pb-4">
+        <SideSelectorButton
+          isEnabled={!gameState.isWatcher && !gameState.isOpponentWhite}
+          isUserSelected={gameState.isUserWhite}
+          isOpponentSelected={gameState.isOpponentWhite}
+          label="White"
           onClick={onSelectWhite}
-          className={[
-            `inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium relative z-10 bg-${whiteColor}-100 text-${whiteColor}-600`,
-            !gameState.isWatcher && !gameState.isOpponentWhite
-              ? "cursor-pointer"
-              : "cursor-default",
-          ].join(" ")}
-        >
-          <svg
-            className="h-1.5 w-1.5 fill-gray-400"
-            viewBox="0 0 6 6"
-            aria-hidden="true"
-          >
-            <circle cx="3" cy="3" r="3" />
-          </svg>
-          Light
-        </span>
-        <span
+        />
+        <SideSelectorButton
+          isEnabled={!gameState.isWatcher && !gameState.isOpponentBlack}
+          isUserSelected={gameState.isUserBlack}
+          isOpponentSelected={gameState.isOpponentBlack}
+          label="Black"
           onClick={onSelectBlack}
-          className={[
-            `inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium bg-${blackColor}-100 text-${blackColor}-600`,
-            !gameState.isWatcher && !gameState.isOpponentBlack
-              ? "cursor-pointer"
-              : "cursor-default",
-          ].join(" ")}
-        >
-          <svg
-            className="h-1.5 w-1.5 fill-gray-400"
-            viewBox="0 0 6 6"
-            aria-hidden="true"
-          >
-            <circle cx="3" cy="3" r="3" />
-          </svg>
-          Dark
-        </span>
+        />
       </div>
+      {(!gameState.whiteUid || !gameState.blackUid) && (
+        <div className="px-4">
+          <p className="text-sm">Waiting for other player ...</p>
+        </div>
+      )}
     </div>
   );
-}
+});
